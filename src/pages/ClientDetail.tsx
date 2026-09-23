@@ -1,0 +1,258 @@
+import { useEffect, useState } from 'react'
+import { useParams, useNavigate, Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
+import { format, parseISO, addYears, differenceInDays } from 'date-fns'
+import { it } from 'date-fns/locale'
+import type { Client, Subscription, Intervention } from '../types'
+
+export default function ClientDetail() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+
+  const [client, setClient] = useState<Client | null>(null)
+  const [subscription, setSubscription] = useState<Subscription | null>(null)
+  const [interventions, setInterventions] = useState<Intervention[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Form nuovo intervento
+  const [newIntervention, setNewIntervention] = useState({
+    intervention_date: format(new Date(), 'yyyy-MM-dd'),
+    description: '',
+  })
+  const [savingIntervention, setSavingIntervention] = useState(false)
+
+  useEffect(() => {
+    if (id) loadData()
+  }, [id])
+
+  async function loadData() {
+    setLoading(true)
+
+    // Cliente
+    const { data: clientData } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    // Abbonamento
+    const { data: subData } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('client_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    // Interventi
+    const { data: intData } = await supabase
+      .from('interventions')
+      .select('*')
+      .eq('client_id', id)
+      .order('intervention_date', { ascending: false })
+
+    setClient(clientData)
+    setSubscription(subData)
+    setInterventions(intData || [])
+    setLoading(false)
+  }
+
+  // Rinnova di 1 anno
+  async function handleRenew() {
+    if (!subscription) return
+    if (!confirm('Vuoi rinnovare l\'abbonamento di 1 anno?')) return
+
+    const newEndDate = format(addYears(parseISO(subscription.end_date), 1), 'yyyy-MM-dd')
+
+    const { error } = await supabase
+      .from('subscriptions')
+      .update({ end_date: newEndDate })
+      .eq('id', subscription.id)
+
+    if (error) {
+      alert('Errore durante il rinnovo: ' + error.message)
+    } else {
+      alert('Abbonamento rinnovato fino al ' + format(parseISO(newEndDate), 'dd/MM/yyyy'))
+      loadData()
+    }
+  }
+
+  // Aggiungi intervento
+  async function handleAddIntervention(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newIntervention.description.trim()) return
+
+    setSavingIntervention(true)
+
+    const { error } = await supabase.from('interventions').insert({
+      client_id: id,
+      intervention_date: newIntervention.intervention_date,
+      description: newIntervention.description,
+    })
+
+    if (error) {
+      alert('Errore: ' + error.message)
+    } else {
+      setNewIntervention({
+        intervention_date: format(new Date(), 'yyyy-MM-dd'),
+        description: '',
+      })
+      loadData()
+    }
+
+    setSavingIntervention(false)
+  }
+
+  function getStatus(sub: Subscription | null) {
+    if (!sub) return { label: 'Nessun abbonamento', color: 'bg-gray-200 text-gray-700' }
+
+    const daysLeft = differenceInDays(parseISO(sub.end_date), new Date())
+
+    if (daysLeft < 0) return { label: 'Scaduto', color: 'bg-red-100 text-red-700' }
+    if (daysLeft <= 30) return { label: `In scadenza (${daysLeft} gg)`, color: 'bg-yellow-100 text-yellow-800' }
+    return { label: 'Attivo', color: 'bg-green-100 text-green-700' }
+  }
+
+  if (loading) return <div className="text-center py-10">Caricamento...</div>
+  if (!client) return <div className="text-center py-10">Cliente non trovato</div>
+
+  const status = getStatus(subscription)
+
+  return (
+  <div className="max-w-3xl mx-auto space-y-8">
+   {/* Intestazione */}
+<div className="flex justify-between items-start">
+  <div>
+    <Link to="/" className="text-blue-600 text-sm hover:underline">
+      ← Torna alla lista
+    </Link>
+    <h1 className="text-2xl font-bold mt-1">{client.name}</h1>
+    <p className="text-gray-600">
+      {client.email || 'Nessuna email'} · {client.phone || 'Nessun telefono'}
+    </p>
+  </div>
+
+  <div className="flex gap-2">
+    <Link
+      to={`/client/${client.id}/modifica`}
+      className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm"
+    >
+      Modifica
+    </Link>
+
+    <button
+      onClick={async () => {
+        if (!confirm('Sei sicuro di voler eliminare questo cliente? Questa azione non si può annullare.')) return
+
+        const { error } = await supabase
+          .from('clients')
+          .delete()
+          .eq('id', client.id)
+
+        if (error) {
+          alert('Errore durante l\'eliminazione: ' + error.message)
+        } else {
+          navigate('/')
+        }
+      }}
+      className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg text-sm"
+    >
+      Elimina
+    </button>
+  </div>
+</div>
+
+      {/* Abbonamento */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Abbonamento</h2>
+          <span className={`text-sm px-3 py-1 rounded-full ${status.color}`}>
+            {status.label}
+          </span>
+        </div>
+
+        {subscription ? (
+          <div className="space-y-2 text-sm">
+            <p><strong>Tipo:</strong> {subscription.package_type || '—'}</p>
+            <p><strong>Scadenza:</strong> {format(parseISO(subscription.end_date), 'dd MMMM yyyy', { locale: it })}</p>
+            <p><strong>Pagato:</strong> {subscription.paid ? 'Sì' : 'No'}</p>
+            <p><strong>SIM Wuarda:</strong> {(subscription as any).has_sim_wuarda ? 'Sì' : 'No'}</p>
+<p><strong>Rinnovo automatico:</strong> {(subscription as any).auto_renew ? 'Sì' : 'No'}</p>
+            <p>
+              <strong>Impianto:</strong>{' '}
+              {(subscription as any).plant_type}
+              {(subscription as any).plant_type === 'Altro' && (subscription as any).plant_type_other
+                ? ` (${(subscription as any).plant_type_other})`
+                : ''}
+            </p>
+
+            <button
+              onClick={handleRenew}
+              className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            >
+              Rinnova di 1 anno
+            </button>
+          </div>
+        ) : (
+          <p className="text-gray-500">Nessun abbonamento attivo</p>
+        )}
+      </div>
+
+      {/* Note generali */}
+      {client.notes && (
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-2">Note generali</h2>
+          <p className="text-gray-700 whitespace-pre-wrap">{client.notes}</p>
+        </div>
+      )}
+
+      {/* Storico Interventi */}
+      <div className="bg-white rounded-xl shadow p-6">
+        <h2 className="text-lg font-semibold mb-4">Storico Interventi</h2>
+
+        {/* Form nuovo intervento */}
+        <form onSubmit={handleAddIntervention} className="mb-6 space-y-3 border-b pb-6">
+          <div className="flex gap-3">
+            <input
+              type="date"
+              value={newIntervention.intervention_date}
+              onChange={e => setNewIntervention(prev => ({ ...prev, intervention_date: e.target.value }))}
+              className="border rounded-lg px-3 py-2"
+            />
+            <input
+              type="text"
+              placeholder="Descrizione intervento..."
+              value={newIntervention.description}
+              onChange={e => setNewIntervention(prev => ({ ...prev, description: e.target.value }))}
+              className="flex-1 border rounded-lg px-3 py-2"
+              required
+            />
+            <button
+              type="submit"
+              disabled={savingIntervention}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              Aggiungi
+            </button>
+          </div>
+        </form>
+
+        {/* Lista interventi */}
+        {interventions.length === 0 ? (
+          <p className="text-gray-500">Nessun intervento registrato</p>
+        ) : (
+          <div className="space-y-4">
+            {interventions.map(item => (
+              <div key={item.id} className="border-l-4 border-blue-500 pl-4 py-1">
+                <p className="text-sm text-gray-500">
+                  {format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}
+                </p>
+                <p className="text-gray-800">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
