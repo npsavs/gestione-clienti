@@ -17,8 +17,6 @@ export default function NuovoCliente() {
     has_sim_wuarda: false,
     plant_type: 'Ajax',
     plant_type_other: '',
-    paid: false,
-    auto_renew: false,
   })
 
   const handleChange = (
@@ -65,12 +63,10 @@ export default function NuovoCliente() {
         client_id: client.id,
         start_date: startDate,
         end_date: form.end_date,
-        paid: form.paid,
         package_type: form.package_type,
         has_sim_wuarda: form.has_sim_wuarda,
         plant_type: form.plant_type,
         plant_type_other: form.plant_type === 'Altro' ? form.plant_type_other : null,
-auto_renew: form.auto_renew,
       })
 
     if (subError) {
@@ -203,30 +199,6 @@ auto_renew: form.auto_renew,
             />
           </div>
         )}
-
-        {/* Pagamento */}
-        <div className="flex items-center gap-2">
-          <input
-            name="paid"
-            type="checkbox"
-            checked={form.paid}
-            onChange={handleChange}
-            id="paid"
-          />
-          <label htmlFor="paid">Pagamento ricevuto</label>
-        </div>
-
-        {/* Rinnovo automatico */}
-        <div className="flex items-center gap-2">
-          <input
-            name="auto_renew"
-            type="checkbox"
-            checked={form.auto_renew}
-            onChange={handleChange}
-            id="auto_renew"
-          />
-          <label htmlFor="auto_renew">Rinnovo automatico (ogni anno)</label>
-        </div>
 
         <div className="flex gap-3 pt-4">
           <button

@@ -14,14 +14,12 @@ export default function ClientDetail() {
   const [interventions, setInterventions] = useState<Intervention[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Form nuovo intervento
   const [newIntervention, setNewIntervention] = useState({
     intervention_date: format(new Date(), 'yyyy-MM-dd'),
     description: '',
   })
   const [savingIntervention, setSavingIntervention] = useState(false)
 
-  // Modifica intervento
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({
     intervention_date: '',
@@ -158,10 +156,20 @@ export default function ClientDetail() {
     return { label: 'Attivo', color: 'bg-green-100 text-green-700' }
   }
 
+  function getWhatsAppLink() {
+    if (!client?.phone || !subscription) return null
+
+    const cleanPhone = client.phone.replace(/\D/g, '').replace(/^39/, '')
+    const message = `Ciao ${client.name}, ti ricordiamo che il tuo abbonamento scade il ${format(parseISO(subscription.end_date), 'dd/MM/yyyy')}. Contattaci per il rinnovo. Grazie!`
+
+    return `https://wa.me/39${cleanPhone}?text=${encodeURIComponent(message)}`
+  }
+
   if (loading) return <div className="text-center py-10">Caricamento...</div>
   if (!client) return <div className="text-center py-10">Cliente non trovato</div>
 
   const status = getStatus(subscription)
+  const whatsappLink = getWhatsAppLink()
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -220,7 +228,6 @@ export default function ClientDetail() {
           <div className="space-y-2 text-sm">
             <p><strong>Tipo:</strong> {subscription.package_type || '—'}</p>
             <p><strong>Scadenza:</strong> {format(parseISO(subscription.end_date), 'dd MMMM yyyy', { locale: it })}</p>
-            <p><strong>Pagato:</strong> {subscription.paid ? 'Sì' : 'No'}</p>
             <p><strong>SIM Wuarda:</strong> {subscription.has_sim_wuarda ? 'Sì' : 'No'}</p>
             <p>
               <strong>Impianto:</strong>{' '}
@@ -229,14 +236,26 @@ export default function ClientDetail() {
                 ? ` (${subscription.plant_type_other})`
                 : ''}
             </p>
-            <p><strong>Rinnovo automatico:</strong> {subscription.auto_renew ? 'Sì' : 'No'}</p>
 
-            <button
-              onClick={handleRenew}
-              className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              Rinnova di 1 anno
-            </button>
+            <div className="flex flex-wrap gap-3 mt-4">
+              <button
+                onClick={handleRenew}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                Rinnova di 1 anno
+              </button>
+
+              {whatsappLink && (
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-emerald-500 text-white px-4 py-2 rounded-lg hover:bg-emerald-600"
+                >
+                  Invia WhatsApp
+                </a>
+              )}
+            </div>
           </div>
         ) : (
           <p className="text-gray-500">Nessun abbonamento attivo</p>
@@ -255,7 +274,6 @@ export default function ClientDetail() {
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4">Storico Interventi</h2>
 
-        {/* Form nuovo intervento */}
         <form onSubmit={handleAddIntervention} className="mb-6 space-y-3 border-b pb-6">
           <div className="flex gap-3">
             <input
@@ -282,7 +300,6 @@ export default function ClientDetail() {
           </div>
         </form>
 
-        {/* Lista interventi */}
         {interventions.length === 0 ? (
           <p className="text-gray-500">Nessun intervento registrato</p>
         ) : (
@@ -318,30 +335,28 @@ export default function ClientDetail() {
                     </div>
                   </form>
                 ) : (
-                  <>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm text-gray-500">
-                          {format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}
-                        </p>
-                        <p className="text-gray-800">{item.description}</p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => startEdit(item)}
-                          className="text-blue-600 text-sm hover:underline"
-                        >
-                          Modifica
-                        </button>
-                        <button
-                          onClick={() => handleDeleteIntervention(item.id)}
-                          className="text-red-600 text-sm hover:underline"
-                        >
-                          Elimina
-                        </button>
-                      </div>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        {format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}
+                      </p>
+                      <p className="text-gray-800">{item.description}</p>
                     </div>
-                  </>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEdit(item)}
+                        className="text-blue-600 text-sm hover:underline"
+                      >
+                        Modifica
+                      </button>
+                      <button
+                        onClick={() => handleDeleteIntervention(item.id)}
+                        className="text-red-600 text-sm hover:underline"
+                      >
+                        Elimina
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
