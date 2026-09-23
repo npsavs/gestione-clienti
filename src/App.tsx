@@ -1,13 +1,14 @@
-import Kanban from './pages/Kanban'
-import ModificaCliente from './pages/ModificaCliente'
-import ClientDetail from './pages/ClientDetail'
-import NuovoCliente from './pages/NuovoCliente'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
 import Login from './pages/Login'
 import Layout from './components/Layout'
 import Dashboard from './pages/Dashboard'
+import NuovoCliente from './pages/NuovoCliente'
+import ClientDetail from './pages/ClientDetail'
+import ModificaCliente from './pages/ModificaCliente'
+import Kanban from './pages/Kanban'
+
 function App() {
   const [session, setSession] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -46,12 +47,12 @@ function App() {
           path="/"
           element={session ? <Layout /> : <Navigate to="/login" />}
         >
+          <Route index element={<Dashboard />} />
           <Route path="nuovo-cliente" element={<NuovoCliente />} />
-<Route path="client/:id" element={<ClientDetail />} />          
-<Route index element={<Dashboard />} />
-<Route path="client/:id/modifica" element={<ModificaCliente />} />
-<Route path="kanban" element={<Kanban />} />       
- </Route>
+          <Route path="client/:id" element={<ClientDetail />} />
+          <Route path="client/:id/modifica" element={<ModificaCliente />} />
+          <Route path="kanban" element={<Kanban />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   )
