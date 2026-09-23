@@ -1,3 +1,4 @@
+import Kanban from './pages/Kanban'
 import ModificaCliente from './pages/ModificaCliente'
 import ClientDetail from './pages/ClientDetail'
 import NuovoCliente from './pages/NuovoCliente'
@@ -49,7 +50,8 @@ function App() {
 <Route path="client/:id" element={<ClientDetail />} />          
 <Route index element={<Dashboard />} />
 <Route path="client/:id/modifica" element={<ModificaCliente />} />
-        </Route>
+<Route path="kanban" element={<Kanban />} />       
+ </Route>
       </Routes>
     </BrowserRouter>
   )

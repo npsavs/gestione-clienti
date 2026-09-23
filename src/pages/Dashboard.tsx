@@ -53,6 +53,49 @@ export default function Dashboard() {
     return { label: 'Attivo', color: 'bg-green-100 text-green-700' }
   }
 
+  function exportScadenzeMese() {
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    const daEsportare = clients.filter(c => {
+      if (!c.subscription) return false
+      const end = parseISO(c.subscription.end_date)
+      return end.getMonth() === currentMonth && end.getFullYear() === currentYear
+    })
+
+    if (daEsportare.length === 0) {
+      alert('Nessun cliente in scadenza questo mese')
+      return
+    }
+
+    const header = ['Nome', 'Email', 'Telefono', 'Tipo Abbonamento', 'Data Scadenza', 'Pagato', 'SIM Wuarda']
+    const rows = daEsportare.map(c => {
+      const sub = c.subscription!
+      return [
+        c.name,
+        c.email || '',
+        c.phone || '',
+        sub.package_type || '',
+        format(parseISO(sub.end_date), 'dd/MM/yyyy'),
+        sub.paid ? 'Sì' : 'No',
+        sub.has_sim_wuarda ? 'Sì' : 'No'
+      ]
+    })
+
+    const csvContent = [header, ...rows]
+      .map(row => row.map(cell => `"${cell}"`).join(';'))
+      .join('\n')
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `scadenze_${format(now, 'MMMM_yyyy', { locale: it })}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
   const filtered = clients.filter(c => {
     const matchSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -76,7 +119,12 @@ export default function Dashboard() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Clienti</h1>
+  <div className="flex items-center gap-4">
+    <h1 className="text-2xl font-bold">Clienti</h1>
+    <Link to="/kanban" className="text-sm text-blue-600 hover:underline">
+      Vista Kanban →
+    </Link>
+  </div>
         <Link
           to="/nuovo-cliente"
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
@@ -93,8 +141,8 @@ export default function Dashboard() {
         className="w-full border rounded-lg px-4 py-2 mb-4"
       />
 
-      {/* Filtri */}
-      <div className="flex gap-2 mb-6 flex-wrap">
+      {/* Filtri + Esporta */}
+      <div className="flex gap-2 mb-6 flex-wrap items-center">
         <button
           onClick={() => setFilter('tutti')}
           className={`px-4 py-1.5 rounded-full text-sm ${filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
@@ -118,6 +166,13 @@ export default function Dashboard() {
           className={`px-4 py-1.5 rounded-full text-sm ${filter === 'scaduti' ? 'bg-red-600 text-white' : 'bg-gray-100'}`}
         >
           Scaduti
+        </button>
+
+        <button
+          onClick={exportScadenzeMese}
+          className="ml-auto bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm hover:bg-emerald-700"
+        >
+          Esporta scadenze del mese
         </button>
       </div>
 

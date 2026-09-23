@@ -21,6 +21,13 @@ export default function ClientDetail() {
   })
   const [savingIntervention, setSavingIntervention] = useState(false)
 
+  // Modifica intervento
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({
+    intervention_date: '',
+    description: '',
+  })
+
   useEffect(() => {
     if (id) loadData()
   }, [id])
@@ -28,14 +35,12 @@ export default function ClientDetail() {
   async function loadData() {
     setLoading(true)
 
-    // Cliente
     const { data: clientData } = await supabase
       .from('clients')
       .select('*')
       .eq('id', id)
       .single()
 
-    // Abbonamento
     const { data: subData } = await supabase
       .from('subscriptions')
       .select('*')
@@ -44,7 +49,6 @@ export default function ClientDetail() {
       .limit(1)
       .maybeSingle()
 
-    // Interventi
     const { data: intData } = await supabase
       .from('interventions')
       .select('*')
@@ -57,7 +61,6 @@ export default function ClientDetail() {
     setLoading(false)
   }
 
-  // Rinnova di 1 anno
   async function handleRenew() {
     if (!subscription) return
     if (!confirm('Vuoi rinnovare l\'abbonamento di 1 anno?')) return
@@ -77,7 +80,6 @@ export default function ClientDetail() {
     }
   }
 
-  // Aggiungi intervento
   async function handleAddIntervention(e: React.FormEvent) {
     e.preventDefault()
     if (!newIntervention.description.trim()) return
@@ -103,6 +105,49 @@ export default function ClientDetail() {
     setSavingIntervention(false)
   }
 
+  async function handleDeleteIntervention(interventionId: string) {
+    if (!confirm('Vuoi eliminare questo intervento?')) return
+
+    const { error } = await supabase
+      .from('interventions')
+      .delete()
+      .eq('id', interventionId)
+
+    if (error) {
+      alert('Errore durante l\'eliminazione: ' + error.message)
+    } else {
+      loadData()
+    }
+  }
+
+  function startEdit(item: Intervention) {
+    setEditingId(item.id)
+    setEditForm({
+      intervention_date: item.intervention_date,
+      description: item.description,
+    })
+  }
+
+  async function handleSaveEdit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingId) return
+
+    const { error } = await supabase
+      .from('interventions')
+      .update({
+        intervention_date: editForm.intervention_date,
+        description: editForm.description,
+      })
+      .eq('id', editingId)
+
+    if (error) {
+      alert('Errore durante la modifica: ' + error.message)
+    } else {
+      setEditingId(null)
+      loadData()
+    }
+  }
+
   function getStatus(sub: Subscription | null) {
     if (!sub) return { label: 'Nessun abbonamento', color: 'bg-gray-200 text-gray-700' }
 
@@ -119,48 +164,48 @@ export default function ClientDetail() {
   const status = getStatus(subscription)
 
   return (
-  <div className="max-w-3xl mx-auto space-y-8">
-   {/* Intestazione */}
-<div className="flex justify-between items-start">
-  <div>
-    <Link to="/" className="text-blue-600 text-sm hover:underline">
-      ← Torna alla lista
-    </Link>
-    <h1 className="text-2xl font-bold mt-1">{client.name}</h1>
-    <p className="text-gray-600">
-      {client.email || 'Nessuna email'} · {client.phone || 'Nessun telefono'}
-    </p>
-  </div>
+    <div className="max-w-3xl mx-auto space-y-8">
+      {/* Intestazione */}
+      <div className="flex justify-between items-start">
+        <div>
+          <Link to="/" className="text-blue-600 text-sm hover:underline">
+            ← Torna alla lista
+          </Link>
+          <h1 className="text-2xl font-bold mt-1">{client.name}</h1>
+          <p className="text-gray-600">
+            {client.email || 'Nessuna email'} · {client.phone || 'Nessun telefono'}
+          </p>
+        </div>
 
-  <div className="flex gap-2">
-    <Link
-      to={`/client/${client.id}/modifica`}
-      className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm"
-    >
-      Modifica
-    </Link>
+        <div className="flex gap-2">
+          <Link
+            to={`/client/${client.id}/modifica`}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm"
+          >
+            Modifica
+          </Link>
 
-    <button
-      onClick={async () => {
-        if (!confirm('Sei sicuro di voler eliminare questo cliente? Questa azione non si può annullare.')) return
+          <button
+            onClick={async () => {
+              if (!confirm('Sei sicuro di voler eliminare questo cliente? Questa azione non si può annullare.')) return
 
-        const { error } = await supabase
-          .from('clients')
-          .delete()
-          .eq('id', client.id)
+              const { error } = await supabase
+                .from('clients')
+                .delete()
+                .eq('id', client.id)
 
-        if (error) {
-          alert('Errore durante l\'eliminazione: ' + error.message)
-        } else {
-          navigate('/')
-        }
-      }}
-      className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg text-sm"
-    >
-      Elimina
-    </button>
-  </div>
-</div>
+              if (error) {
+                alert('Errore durante l\'eliminazione: ' + error.message)
+              } else {
+                navigate('/')
+              }
+            }}
+            className="bg-red-100 hover:bg-red-200 text-red-700 px-4 py-2 rounded-lg text-sm"
+          >
+            Elimina
+          </button>
+        </div>
+      </div>
 
       {/* Abbonamento */}
       <div className="bg-white rounded-xl shadow p-6">
@@ -176,15 +221,15 @@ export default function ClientDetail() {
             <p><strong>Tipo:</strong> {subscription.package_type || '—'}</p>
             <p><strong>Scadenza:</strong> {format(parseISO(subscription.end_date), 'dd MMMM yyyy', { locale: it })}</p>
             <p><strong>Pagato:</strong> {subscription.paid ? 'Sì' : 'No'}</p>
-            <p><strong>SIM Wuarda:</strong> {(subscription as any).has_sim_wuarda ? 'Sì' : 'No'}</p>
-<p><strong>Rinnovo automatico:</strong> {(subscription as any).auto_renew ? 'Sì' : 'No'}</p>
+            <p><strong>SIM Wuarda:</strong> {subscription.has_sim_wuarda ? 'Sì' : 'No'}</p>
             <p>
               <strong>Impianto:</strong>{' '}
-              {(subscription as any).plant_type}
-              {(subscription as any).plant_type === 'Altro' && (subscription as any).plant_type_other
-                ? ` (${(subscription as any).plant_type_other})`
+              {subscription.plant_type}
+              {subscription.plant_type === 'Altro' && subscription.plant_type_other
+                ? ` (${subscription.plant_type_other})`
                 : ''}
             </p>
+            <p><strong>Rinnovo automatico:</strong> {subscription.auto_renew ? 'Sì' : 'No'}</p>
 
             <button
               onClick={handleRenew}
@@ -243,11 +288,61 @@ export default function ClientDetail() {
         ) : (
           <div className="space-y-4">
             {interventions.map(item => (
-              <div key={item.id} className="border-l-4 border-blue-500 pl-4 py-1">
-                <p className="text-sm text-gray-500">
-                  {format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}
-                </p>
-                <p className="text-gray-800">{item.description}</p>
+              <div key={item.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                {editingId === item.id ? (
+                  <form onSubmit={handleSaveEdit} className="space-y-2">
+                    <input
+                      type="date"
+                      value={editForm.intervention_date}
+                      onChange={e => setEditForm(prev => ({ ...prev, intervention_date: e.target.value }))}
+                      className="border rounded-lg px-3 py-1.5 text-sm"
+                    />
+                    <input
+                      type="text"
+                      value={editForm.description}
+                      onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full border rounded-lg px-3 py-1.5 text-sm"
+                      required
+                    />
+                    <div className="flex gap-2">
+                      <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded text-sm">
+                        Salva
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingId(null)}
+                        className="border px-3 py-1 rounded text-sm"
+                      >
+                        Annulla
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          {format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}
+                        </p>
+                        <p className="text-gray-800">{item.description}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => startEdit(item)}
+                          className="text-blue-600 text-sm hover:underline"
+                        >
+                          Modifica
+                        </button>
+                        <button
+                          onClick={() => handleDeleteIntervention(item.id)}
+                          className="text-red-600 text-sm hover:underline"
+                        >
+                          Elimina
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
