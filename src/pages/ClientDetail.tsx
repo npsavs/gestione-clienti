@@ -5,6 +5,22 @@ import { format, parseISO, addYears, differenceInDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import type { Client, Subscription, Intervention } from '../types'
 
+const FATTURE_URL = 'https://fatture-self.vercel.app'
+
+async function prossimoNumeroFattura() {
+  const year = new Date().getFullYear()
+  const { data } = await supabase.from('invoices').select('invoice_number, invoice_type')
+  const usati = (data || [])
+    .filter(q => (q.invoice_type || 'fattura') === 'fattura')
+    .map(q => {
+      const m = String(q.invoice_number || '').replace(/^NC/i, '').match(/^(\d+)\/(\d{4})$/)
+      if (m && Number(m[2]) === year) return Number(m[1])
+      return 0
+    })
+  const n = Math.max(0, ...usati) + 1
+  return `${n}/${year}`
+}
+
 export default function ClientDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -13,6 +29,8 @@ export default function ClientDetail() {
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [interventions, setInterventions] = useState<Intervention[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [creatingInvoice, setCreatingInvoice] = useState(false)
 
   const [newIntervention, setNewIntervention] = useState({
     intervention_date: format(new Date(), 'yyyy-MM-dd'),
@@ -57,6 +75,79 @@ export default function ClientDetail() {
     setSubscription(subData)
     setInterventions(intData || [])
     setLoading(false)
+  }
+
+  function toggleIntervention(interventionId: string) {
+    setSelectedIds(prev =>
+      prev.includes(interventionId)
+        ? prev.filter(x => x !== interventionId)
+        : [...prev, interventionId]
+    )
+  }
+
+  function toggleAllInterventions() {
+    if (selectedIds.length === interventions.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(interventions.map(i => i.id))
+    }
+  }
+
+  async function handleCreaFattura() {
+    if (!client || selectedIds.length === 0) {
+      alert('Seleziona almeno un intervento')
+      return
+    }
+
+    const scelti = interventions.filter(i => selectedIds.includes(i.id))
+    if (!confirm(`Creare una fattura con ${scelti.length} intervento/i?`)) return
+
+    setCreatingInvoice(true)
+
+    const numero = await prossimoNumeroFattura()
+    const oggetto = scelti.length === 1
+      ? `Intervento del ${format(parseISO(scelti[0].intervention_date), 'dd/MM/yyyy')}`
+      : `Interventi (${scelti.length})`
+
+    const { data: inv, error: invError } = await supabase
+      .from('invoices')
+      .insert({
+        invoice_number: numero,
+        sdi_status: 'bozza',
+        client_id: client.id,
+        invoice_type: 'fattura',
+        oggetto,
+      })
+      .select()
+      .single()
+
+    if (invError || !inv) {
+      setCreatingInvoice(false)
+      alert('Errore creazione fattura: ' + (invError?.message || 'sconosciuto'))
+      return
+    }
+
+    const righe = scelti.map(item => ({
+      invoice_id: inv.id,
+      name: `${format(parseISO(item.intervention_date), 'dd/MM/yyyy')} — ${item.description}`,
+      description: item.description,
+      quantity: 1,
+      unit_price: 0,
+      vat_rate: 22,
+      vat_note: null,
+    }))
+
+    const { error: itemsError } = await supabase.from('invoice_items').insert(righe)
+
+    setCreatingInvoice(false)
+
+    if (itemsError) {
+      alert('Fattura creata ma errore sulle righe: ' + itemsError.message)
+      window.open(`${FATTURE_URL}/fattura/${inv.id}`, '_blank')
+      return
+    }
+
+    window.open(`${FATTURE_URL}/fattura/${inv.id}`, '_blank')
   }
 
   async function handleRenew() {
@@ -114,6 +205,7 @@ export default function ClientDetail() {
     if (error) {
       alert('Errore durante l\'eliminazione: ' + error.message)
     } else {
+      setSelectedIds(prev => prev.filter(x => x !== interventionId))
       loadData()
     }
   }
@@ -173,7 +265,6 @@ export default function ClientDetail() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
-      {/* Intestazione */}
       <div className="flex justify-between items-start">
         <div>
           <Link to="/" className="text-blue-600 text-sm hover:underline">
@@ -215,7 +306,6 @@ export default function ClientDetail() {
         </div>
       </div>
 
-      {/* Abbonamento */}
       <div className="bg-white rounded-xl shadow p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-lg font-semibold">Abbonamento</h2>
@@ -262,7 +352,6 @@ export default function ClientDetail() {
         )}
       </div>
 
-      {/* Note generali */}
       {client.notes && (
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold mb-2">Note generali</h2>
@@ -270,9 +359,22 @@ export default function ClientDetail() {
         </div>
       )}
 
-      {/* Storico Interventi */}
       <div className="bg-white rounded-xl shadow p-6">
-        <h2 className="text-lg font-semibold mb-4">Storico Interventi</h2>
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
+          <h2 className="text-lg font-semibold">Storico Interventi</h2>
+          <button
+            type="button"
+            onClick={handleCreaFattura}
+            disabled={selectedIds.length === 0 || creatingInvoice}
+            className="bg-violet-700 text-white px-4 py-2 rounded-lg hover:bg-violet-800 disabled:opacity-40 text-sm"
+          >
+            {creatingInvoice
+              ? 'Creazione...'
+              : selectedIds.length === 0
+                ? 'Crea fattura'
+                : `Crea fattura (${selectedIds.length})`}
+          </button>
+        </div>
 
         <form onSubmit={handleAddIntervention} className="mb-6 space-y-3 border-b pb-6">
           <div className="flex gap-3">
@@ -304,6 +406,15 @@ export default function ClientDetail() {
           <p className="text-gray-500">Nessun intervento registrato</p>
         ) : (
           <div className="space-y-4">
+            <label className="flex items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === interventions.length && interventions.length > 0}
+                onChange={toggleAllInterventions}
+              />
+              Seleziona tutti
+            </label>
+
             {interventions.map(item => (
               <div key={item.id} className="border-l-4 border-blue-500 pl-4 py-2">
                 {editingId === item.id ? (
@@ -335,14 +446,22 @@ export default function ClientDetail() {
                     </div>
                   </form>
                 ) : (
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        {format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}
-                      </p>
-                      <p className="text-gray-800">{item.description}</p>
-                    </div>
-                    <div className="flex gap-2">
+                  <div className="flex justify-between items-start gap-3">
+                    <label className="flex items-start gap-3 flex-1 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-1"
+                        checked={selectedIds.includes(item.id)}
+                        onChange={() => toggleIntervention(item.id)}
+                      />
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          {format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}
+                        </p>
+                        <p className="text-gray-800">{item.description}</p>
+                      </div>
+                    </label>
+                    <div className="flex gap-2 shrink-0">
                       <button
                         onClick={() => startEdit(item)}
                         className="text-blue-600 text-sm hover:underline"
