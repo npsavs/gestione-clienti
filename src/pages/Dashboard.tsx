@@ -100,14 +100,14 @@ export default function Dashboard() {
       <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl font-bold">Clienti</h1>
-          <Link to="/kanban" className="text-sm text-blue-600 hover:underline">Vista Kanban</Link>
+          <Link to="/kanban" className="text-sm text-blue-600">Vista Kanban</Link>
         </div>
         <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nuovo Cliente</Link>
       </div>
 
-      <input type="text" placeholder="Cerca nome, email o telefono..." value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg px-4 py-2 mb-4" />
+      <input type="text" placeholder="Scrivi almeno 2 lettere..." value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg px-4 py-2 mb-4" />
 
-      <div className="flex gap-2 mb-3 flex-wrap items-center">
+      <div className="flex gap-2 mb-3 flex-wrap">
         <button type="button" onClick={() => setFilter('tutti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100')}>Tutti ({searched.length})</button>
         <button type="button" onClick={() => setFilter('attivi')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'attivi' ? 'bg-green-600 text-white' : 'bg-gray-100')}>Attivi ({nStato('attivo')})</button>
         <button type="button" onClick={() => setFilter('scadenza')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-gray-100')}>In scadenza ({nStato('scadenza')})</button>
@@ -115,7 +115,7 @@ export default function Dashboard() {
         <button type="button" onClick={() => setFilter('nessuno')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'nessuno' ? 'bg-slate-700 text-white' : 'bg-gray-100')}>Senza abbonamento ({nStato('nessuno')})</button>
       </div>
 
-      <div className="flex gap-2 mb-6 flex-wrap items-center">
+      <div className="flex gap-2 mb-6 flex-wrap">
         <button type="button" onClick={() => setPacchetto('')} className={'px-4 py-1.5 rounded-full text-sm ' + (!pacchetto ? 'bg-slate-900 text-white' : 'bg-gray-100')}>Tutti i tipi ({perStato.length})</button>
         {PACCHETTI.map(p => (
           <button key={p} type="button" onClick={() => setPacchetto(p)} className={'px-4 py-1.5 rounded-full text-sm ' + (pacchetto === p ? 'bg-slate-900 text-white' : 'bg-gray-100')}>{p} ({nPack(p)})</button>
@@ -123,13 +123,11 @@ export default function Dashboard() {
         <button type="button" onClick={() => setPagato('')} className={'px-4 py-1.5 rounded-full text-sm ' + (!pagato ? 'bg-emerald-700 text-white' : 'bg-gray-100')}>Pagamento tutti</button>
         <button type="button" onClick={() => setPagato('si')} className={'px-4 py-1.5 rounded-full text-sm ' + (pagato === 'si' ? 'bg-emerald-700 text-white' : 'bg-gray-100')}>Pagati ({nPagati})</button>
         <button type="button" onClick={() => setPagato('no')} className={'px-4 py-1.5 rounded-full text-sm ' + (pagato === 'no' ? 'bg-emerald-700 text-white' : 'bg-gray-100')}>Non pagati ({nNonPagati})</button>
-        <button type="button" onClick={exportScadenzeMese} className="ml-auto bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta scadenze del mese</button>
+        <button type="button" onClick={exportScadenzeMese} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta scadenze del mese</button>
       </div>
 
-      <p className="text-sm text-slate-500 mb-3">Risultati: {filtered.length}</p>
-
-           {search.trim().length < 2 ? (
-        <p className="text-sm text-slate-500">Scrivi almeno 2 lettere. I clienti compaiono solo dopo la ricerca.</p>
+      {search.trim().length < 2 ? (
+        <p className="text-sm text-slate-500">I clienti compaiono solo dopo la ricerca.</p>
       ) : filtered.length === 0 ? (
         <p className="text-gray-500 text-center py-10">Nessun cliente trovato</p>
       ) : (
@@ -139,7 +137,7 @@ export default function Dashboard() {
             return (
               <div key={client.id} className="bg-white rounded-xl shadow p-4 space-y-2">
                 <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
-                <p className="text-sm text-gray-600">{client.email || '-'} · {client.phone || '-'}</p>
+                <p className="text-sm text-gray-600 break-words">{client.email || '-'} · {client.phone || '-'}</p>
                 <p className="text-sm">{client.subscription?.package_type || 'Nessun pacchetto'}</p>
                 <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
                 <div className="flex flex-wrap gap-2 pt-1">
@@ -151,3 +149,6 @@ export default function Dashboard() {
           })}
         </div>
       )}
+    </div>
+  )
+}
