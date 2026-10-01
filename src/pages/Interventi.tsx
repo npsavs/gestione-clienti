@@ -45,38 +45,52 @@ export default function Interventi() {
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
-  async function creaFattura() {
-    if (!cliente || selected.length === 0) return alert('Seleziona almeno un intervento')
-    const scelti = rows.filter(i => selected.includes(i.id))
+   async function handleCreaFattura() {
+    if (!client || selectedIds.length === 0) return alert('Seleziona almeno un intervento')
+    const scelti = interventions.filter(i => selectedIds.includes(i.id))
     if (!confirm('Creare una fattura con ' + scelti.length + ' intervento/i?')) return
-    setBusy(true)
+    setCreatingInvoice(true)
+
     const numero = await prossimoNumeroFattura()
     const oggetto = scelti.length === 1
       ? 'Intervento del ' + format(parseISO(scelti[0].intervention_date), 'dd/MM/yyyy')
       : 'Interventi (' + scelti.length + ')'
-    const { data: inv, error } = await supabase.from('invoices').insert({
+
+    const { data: inv, error: invError } = await supabase.from('invoices').insert({
       invoice_number: numero,
       sdi_status: 'bozza',
-      client_id: cliente.id,
+      client_id: client.id,
       invoice_type: 'fattura',
       oggetto,
+      invoice_date: format(new Date(), 'yyyy-MM-dd'),
     }).select().single()
-    if (error || !inv) {
-      setBusy(false)
-      return alert(error?.message || 'Errore')
+
+    if (invError || !inv) {
+      setCreatingInvoice(false)
+      alert('Fattura non creata: ' + (invError?.message || 'errore'))
+      return
     }
-    await supabase.from('invoice_items').insert(scelti.map(item => ({
+
+    const righe = scelti.map(item => ({
       invoice_id: inv.id,
       name: format(parseISO(item.intervention_date), 'dd/MM/yyyy') + ' - ' + item.description,
       description: item.description,
       quantity: 1,
       unit_price: 0,
       vat_rate: 22,
-    })))
-    setBusy(false)
-    window.open(FATTURE_URL + '/fattura/' + inv.id, '_blank')
-  }
+    }))
 
+    const { error: itemsError } = await supabase.from('invoice_items').insert(righe)
+    setCreatingInvoice(false)
+
+    if (itemsError) {
+      alert('Fattura creata ma le righe non sono entrate: ' + itemsError.message)
+      return
+    }
+
+    window.open('https://fatture-self.vercel.app/fattura/' + inv.id, '_blank')
+    window.open('https://fatture-self.vercel.app/stampa/' + inv.id, '_blank')
+  }
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Interventi</h1>

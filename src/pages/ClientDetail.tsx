@@ -74,26 +74,32 @@ export default function ClientDetail() {
     else setSelectedIds(interventions.map(i => i.id))
   }
 
-  async function handleCreaFattura() {
+   async function handleCreaFattura() {
     if (!client || selectedIds.length === 0) return alert('Seleziona almeno un intervento')
     const scelti = interventions.filter(i => selectedIds.includes(i.id))
     if (!confirm('Creare una fattura con ' + scelti.length + ' intervento/i?')) return
     setCreatingInvoice(true)
+
     const numero = await prossimoNumeroFattura()
     const oggetto = scelti.length === 1
       ? 'Intervento del ' + format(parseISO(scelti[0].intervention_date), 'dd/MM/yyyy')
       : 'Interventi (' + scelti.length + ')'
+
     const { data: inv, error: invError } = await supabase.from('invoices').insert({
       invoice_number: numero,
       sdi_status: 'bozza',
       client_id: client.id,
       invoice_type: 'fattura',
       oggetto,
+      invoice_date: format(new Date(), 'yyyy-MM-dd'),
     }).select().single()
+
     if (invError || !inv) {
       setCreatingInvoice(false)
-      return alert('Errore creazione fattura: ' + (invError?.message || 'sconosciuto'))
+      alert('Fattura non creata: ' + (invError?.message || 'errore'))
+      return
     }
+
     const righe = scelti.map(item => ({
       invoice_id: inv.id,
       name: format(parseISO(item.intervention_date), 'dd/MM/yyyy') + ' - ' + item.description,
@@ -101,12 +107,18 @@ export default function ClientDetail() {
       quantity: 1,
       unit_price: 0,
       vat_rate: 22,
-      vat_note: null,
     }))
+
     const { error: itemsError } = await supabase.from('invoice_items').insert(righe)
     setCreatingInvoice(false)
-    if (itemsError) alert('Fattura creata ma errore sulle righe: ' + itemsError.message)
-    window.open(FATTURE_URL + '/fattura/' + inv.id, '_blank')
+
+    if (itemsError) {
+      alert('Fattura creata ma le righe non sono entrate: ' + itemsError.message)
+      return
+    }
+
+    window.open('https://fatture-self.vercel.app/fattura/' + inv.id, '_blank')
+    window.open('https://fatture-self.vercel.app/stampa/' + inv.id, '_blank')
   }
 
   async function handleRenew() {
