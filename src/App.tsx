@@ -1,3 +1,4 @@
+import Home from './pages/Home'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
@@ -48,6 +49,12 @@ function App() {
           element={session ? <Layout /> : <Navigate to="/login" />}
         >
           <Route index element={<Dashboard />} />
+          <Route path="nuovo-cliente" element={<NuovoCliente />} />
+          <Route path="client/:id" element={<ClientDetail />} />
+          <Route path="client/:id/modifica" element={<ModificaCliente />} />
+          <Route path="kanban" element={<Kanban />} />
+          <Route index element={<Home />} />
+          <Route path="clienti" element={<Dashboard />} />
           <Route path="nuovo-cliente" element={<NuovoCliente />} />
           <Route path="client/:id" element={<ClientDetail />} />
           <Route path="client/:id/modifica" element={<ModificaCliente />} />
