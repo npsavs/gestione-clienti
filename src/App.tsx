@@ -1,5 +1,5 @@
-import Interventi from './pages/Interventi'
 import Home from './pages/Home'
+import Interventi from './pages/Interventi'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { supabase } from './lib/supabase'
@@ -61,6 +61,8 @@ function App() {
           <Route path="client/:id/modifica" element={<ModificaCliente />} />
           <Route path="kanban" element={<Kanban />} />
           <Route path="interventi" element={<Interventi />} />
+          <Route index element={<Home />} />
+          <Route path="clienti" element={<Dashboard />} />
         </Route>
       </Routes>
     </BrowserRouter>
