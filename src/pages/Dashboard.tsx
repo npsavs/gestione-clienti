@@ -128,43 +128,26 @@ export default function Dashboard() {
 
       <p className="text-sm text-slate-500 mb-3">Risultati: {filtered.length}</p>
 
-      {filtered.length === 0 ? (
+           {search.trim().length < 2 ? (
+        <p className="text-sm text-slate-500">Scrivi almeno 2 lettere. I clienti compaiono solo dopo la ricerca.</p>
+      ) : filtered.length === 0 ? (
         <p className="text-gray-500 text-center py-10">Nessun cliente trovato</p>
       ) : (
-        <div className="bg-white rounded-xl shadow overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b">
-              <tr>
-                <th className="text-left px-4 py-3">Nome</th>
-                <th className="text-left px-4 py-3">Email</th>
-                <th className="text-left px-4 py-3">Pacchetto</th>
-                <th className="text-left px-4 py-3">Stato</th>
-                <th className="text-left px-4 py-3">Scadenza</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(client => {
-                const status = getStatus(client.subscription)
-                return (
-                  <tr key={client.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <Link to={'/client/' + client.id} className="text-blue-600 hover:underline font-medium">{client.name}</Link>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{client.email || '-'}</td>
-                    <td className="px-4 py-3 text-gray-600">{client.subscription?.package_type || '-'}</td>
-                    <td className="px-4 py-3">
-                      <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {client.subscription ? format(parseISO(client.subscription.end_date), 'dd MMM yyyy', { locale: it }) : '-'}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {filtered.map(client => {
+            const status = getStatus(client.subscription)
+            return (
+              <div key={client.id} className="bg-white rounded-xl shadow p-4 space-y-2">
+                <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
+                <p className="text-sm text-gray-600">{client.email || '-'} · {client.phone || '-'}</p>
+                <p className="text-sm">{client.subscription?.package_type || 'Nessun pacchetto'}</p>
+                <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Link to={'/client/' + client.id} className="text-sm border px-3 py-1 rounded-lg">Scheda</Link>
+                  <Link to={'/client/' + client.id + '/modifica'} className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg">Aggiungi abbonamento</Link>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
-    </div>
-  )
-}

@@ -16,6 +16,7 @@ export default function Layout() {
             <NavLink to="/clienti" className={item}>Clienti</NavLink>
             <NavLink to="/kanban" className={item}>Kanban</NavLink>
             <NavLink to="/nuovo-cliente" className={item}>+ Nuovo</NavLink>
+            <NavLink to="/interventi" className={item}>Interventi</NavLink>
           </nav>
           <button type="button" onClick={async () => { await supabase.auth.signOut(); navigate('/login') }} className="text-sm text-slate-600">Esci</button>
         </div>

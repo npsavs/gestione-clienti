@@ -1,3 +1,4 @@
+import Interventi from './pages/Interventi'
 import Home from './pages/Home'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
@@ -59,6 +60,7 @@ function App() {
           <Route path="client/:id" element={<ClientDetail />} />
           <Route path="client/:id/modifica" element={<ModificaCliente />} />
           <Route path="kanban" element={<Kanban />} />
+          <Route path="interventi" element={<Interventi />} />
         </Route>
       </Routes>
     </BrowserRouter>
