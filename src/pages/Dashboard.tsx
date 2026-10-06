@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Client, Subscription } from '../types'
-import { format, differenceInDays, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 const PACCHETTI = ['Classic', 'Premium', 'Medium', 'Basic', 'Nuovo Impianto']
@@ -20,32 +20,27 @@ export default function Dashboard() {
   async function loadClients() {
     setLoading(true)
     const { data: clientsData, error } = await supabase.from('clients').select('*').order('name')
-    if (error) {
-      console.error(error)
-      setLoading(false)
-      return
-    }
+    if (error) { setLoading(false); return }
     const { data: subsData } = await supabase.from('subscriptions').select('*')
-    const clientsWithSub = (clientsData || []).map(client => {
-      const sub = (subsData || []).find(s => s.client_id === client.id)
-      return { ...client, subscription: sub }
-    })
-    setClients(clientsWithSub)
+    setClients((clientsData || []).map(client => ({ ...client, subscription: (subsData || []).find(s => s.client_id === client.id) })))
     setLoading(false)
   }
 
   function getStatus(sub?: Subscription) {
-    if (!sub) return { label: 'Nessun abbonamento', color: 'bg-gray-200 text-gray-700', key: 'nessuno' }
-    const daysLeft = differenceInDays(parseISO(sub.end_date), new Date())
-    if (daysLeft < 0) return { label: 'Scaduto', color: 'bg-red-100 text-red-700', key: 'scaduti' }
-    if (daysLeft <= 30) return { label: 'In scadenza (' + daysLeft + ' gg)', color: 'bg-yellow-100 text-yellow-800', key: 'scadenza' }
+    if (!sub || !sub.end_date) return { label: 'Nessun abbonamento', color: 'bg-gray-200 text-gray-700', key: 'nessuno' }
+    const end = parseISO(sub.end_date)
+    const now = new Date()
+    const inizioMese = new Date(end.getFullYear(), end.getMonth(), 1)
+    const fineMese = new Date(end.getFullYear(), end.getMonth() + 1, 1)
+    if (now >= fineMese) return { label: 'Scaduto', color: 'bg-red-100 text-red-700', key: 'scaduti' }
+    if (now >= inizioMese) return { label: 'In scadenza', color: 'bg-yellow-100 text-yellow-800', key: 'scadenza' }
     return { label: 'Attivo', color: 'bg-green-100 text-green-700', key: 'attivo' }
   }
 
   function exportScadenzeMese() {
     const now = new Date()
     const daEsportare = clients.filter(c => {
-      if (!c.subscription) return false
+      if (!c.subscription?.end_date) return false
       const end = parseISO(c.subscription.end_date)
       return end.getMonth() === now.getMonth() && end.getFullYear() === now.getFullYear()
     })
@@ -104,9 +99,7 @@ export default function Dashboard() {
         </div>
         <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nuovo Cliente</Link>
       </div>
-
       <input type="text" placeholder="Scrivi almeno 2 lettere..." value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg px-4 py-2 mb-4" />
-
       <div className="flex gap-2 mb-3 flex-wrap">
         <button type="button" onClick={() => setFilter('tutti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100')}>Tutti ({searched.length})</button>
         <button type="button" onClick={() => setFilter('attivi')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'attivi' ? 'bg-green-600 text-white' : 'bg-gray-100')}>Attivi ({nStato('attivo')})</button>
@@ -114,7 +107,6 @@ export default function Dashboard() {
         <button type="button" onClick={() => setFilter('scaduti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scaduti' ? 'bg-red-600 text-white' : 'bg-gray-100')}>Scaduti ({nStato('scaduti')})</button>
         <button type="button" onClick={() => setFilter('nessuno')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'nessuno' ? 'bg-slate-700 text-white' : 'bg-gray-100')}>Senza abbonamento ({nStato('nessuno')})</button>
       </div>
-
       <div className="flex gap-2 mb-6 flex-wrap">
         <button type="button" onClick={() => setPacchetto('')} className={'px-4 py-1.5 rounded-full text-sm ' + (!pacchetto ? 'bg-slate-900 text-white' : 'bg-gray-100')}>Tutti i tipi ({perStato.length})</button>
         {PACCHETTI.map(p => (
@@ -125,7 +117,6 @@ export default function Dashboard() {
         <button type="button" onClick={() => setPagato('no')} className={'px-4 py-1.5 rounded-full text-sm ' + (pagato === 'no' ? 'bg-emerald-700 text-white' : 'bg-gray-100')}>Non pagati ({nNonPagati})</button>
         <button type="button" onClick={exportScadenzeMese} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta scadenze del mese</button>
       </div>
-
       {search.trim().length < 2 ? (
         <p className="text-sm text-slate-500">I clienti compaiono solo dopo la ricerca.</p>
       ) : filtered.length === 0 ? (
