@@ -5,7 +5,7 @@ import { format, parseISO, addYears, differenceInDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import type { Client, Subscription, Intervention } from '../types'
 
-const FATTURE_URL = 'https://fatture-self.vercel.app'
+
 
 async function prossimoNumeroFattura() {
   const year = new Date().getFullYear()
