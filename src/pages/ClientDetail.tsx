@@ -116,8 +116,7 @@ export default function ClientDetail() {
     alert('Righe non entrate, bozza cancellata: ' + itemsError.message)
     return
   }
-
-  window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_blank')
+window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_blank')
 }
 
   async function handleRenew() {
