@@ -123,7 +123,7 @@ export default function ModificaCliente() {
         has_sim_wuarda: form.has_sim_wuarda,
         plant_type: form.plant_type,
         plant_type_other: form.plant_type === 'Altro' ? form.plant_type_other : null,
-        auto_renew: form.auto_renew,
+        
       })
     }
 
@@ -264,9 +264,7 @@ export default function ModificaCliente() {
             onChange={handleChange}
             id="paid"
           />
-          <label htmlFor="paid">Pagamento ricevuto</label>
-        </div>
-
+          
         <div className="flex items-center gap-2">
           <input
             name="auto_renew"

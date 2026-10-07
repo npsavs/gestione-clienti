@@ -29,6 +29,7 @@ export default function Interventi() {
   function toggle(id: string) {
     const row = rows.find(r => r.id === id)
     if (row?.invoice_id) return
+if (row?.payment_type === 'garanzia' || row?.invoice_id) return
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
@@ -90,9 +91,9 @@ export default function Interventi() {
           </button>
           {rows.map(item => (
             <div key={item.id} className="bg-white rounded-xl shadow p-4 space-y-1">
-              {item.invoice_id ? <p className="text-xs text-green-700">Gia fatturato · {item.invoice_number}</p> : (
-                <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
-              )}
+              {item.payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : item.invoice_id ? <p className="text-xs text-green-700">Gia fatturato · {item.invoice_number}</p> : (
+  <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare · {item.payment_type || 'pagato'}</label>
+)}
               <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
               <p className="text-sm text-slate-600 break-words">{item.description}</p>
             </div>

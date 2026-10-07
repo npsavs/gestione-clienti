@@ -15,8 +15,12 @@ export default function NuovoCliente() {
   const [email, setEmail] = useState('')
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [packageType, setPackageType] = useState('Classic')
+  const [plantType, setPlantType] = useState('Ajax')
+  const [plantOther, setPlantOther] = useState('')
+  const [sim, setSim] = useState(false)
   const [dataIntervento, setDataIntervento] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [descrizione, setDescrizione] = useState('')
+  const [voci, setVoci] = useState([''])
+  const [pagamento, setPagamento] = useState('pagato')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -40,7 +44,13 @@ export default function NuovoCliente() {
     if (!id) { setBusy(false); return }
     const start = format(subYears(new Date(endDate), 1), 'yyyy-MM-dd')
     const { error } = await supabase.from('subscriptions').insert({
-      client_id: id, start_date: start, end_date: endDate, package_type: packageType, has_sim_wuarda: false, plant_type: 'Ajax',
+      client_id: id,
+      start_date: start,
+      end_date: endDate,
+      package_type: packageType,
+      has_sim_wuarda: sim,
+      plant_type: plantType,
+      plant_type_other: plantType === 'Altro' ? plantOther : null,
     })
     setBusy(false)
     if (error) return alert(error.message)
@@ -48,13 +58,17 @@ export default function NuovoCliente() {
   }
 
   async function salvaIntervento() {
-    if (!descrizione.trim()) return alert('Scrivi la descrizione')
+    const descrizioni = voci.map(v => v.trim()).filter(Boolean)
+    if (!descrizioni.length) return alert('Scrivi almeno una descrizione')
     setBusy(true)
     const id = await assicuratiCliente()
     if (!id) { setBusy(false); return }
-    const { error } = await supabase.from('interventions').insert({
-      client_id: id, intervention_date: dataIntervento, description: descrizione.trim(),
-    })
+    const { error } = await supabase.from('interventions').insert(descrizioni.map(description => ({
+      client_id: id,
+      intervention_date: dataIntervento,
+      description,
+      payment_type: pagamento,
+    })))
     setBusy(false)
     if (error) return alert(error.message)
     navigate('/interventi')
@@ -84,16 +98,35 @@ export default function NuovoCliente() {
           ) : null}
           {modo === 'abbonamento' ? (
             <>
+              <label className="text-sm">Data scadenza</label>
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
+              <label className="text-sm">Tipo abbonamento</label>
               <select value={packageType} onChange={e => setPackageType(e.target.value)} className="w-full border rounded-lg px-3 py-2">
                 <option>Classic</option><option>Premium</option><option>Medium</option><option>Basic</option><option>Nuovo Impianto</option>
               </select>
+              <label className="text-sm">Impianto</label>
+              <select value={plantType} onChange={e => setPlantType(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+                <option>Ajax</option><option>Ademco</option><option>Altro</option>
+              </select>
+              {plantType === 'Altro' ? <input value={plantOther} onChange={e => setPlantOther(e.target.value)} placeholder="Tipo impianto" className="w-full border rounded-lg px-3 py-2" /> : null}
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={sim} onChange={e => setSim(e.target.checked)} /> SIM Wuarda</label>
               <button type="button" disabled={busy} onClick={salvaAbbonamento} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Salva abbonamento</button>
             </>
           ) : (
             <>
+              <label className="text-sm">Data</label>
               <input type="date" value={dataIntervento} onChange={e => setDataIntervento(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
-              <textarea value={descrizione} onChange={e => setDescrizione(e.target.value)} placeholder="Descrizione intervento" className="w-full border rounded-lg px-3 py-2" rows={3} />
+              <label className="text-sm">Pagamento</label>
+              <select value={pagamento} onChange={e => setPagamento(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+                <option value="garanzia">In garanzia</option>
+                <option value="pagato">Pagato</option>
+                <option value="pos">Pagato con POS</option>
+                <option value="bonifico">Paga con bonifico</option>
+              </select>
+              {voci.map((v, i) => (
+                <input key={i} value={v} onChange={e => setVoci(prev => prev.map((x, n) => n === i ? e.target.value : x))} placeholder={'Descrizione ' + (i + 1)} className="w-full border rounded-lg px-3 py-2" />
+              ))}
+              <button type="button" onClick={() => setVoci(prev => [...prev, ''])} className="text-sm text-blue-600">Aggiungi un altro intervento dello stesso giorno</button>
               <button type="button" disabled={busy} onClick={salvaIntervento} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Salva intervento</button>
             </>
           )}
