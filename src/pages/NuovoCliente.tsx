@@ -21,6 +21,7 @@ export default function NuovoCliente() {
   const [dataIntervento, setDataIntervento] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [voci, setVoci] = useState([''])
   const [pagamento, setPagamento] = useState('pagato')
+  const [importo, setImporto] = useState('')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function NuovoCliente() {
       intervention_date: dataIntervento,
       description,
       payment_type: pagamento,
+      amount: pagamento === 'garanzia' ? 0 : Number(importo || 0),
     })))
     setBusy(false)
     if (error) return alert(error.message)
@@ -123,6 +125,8 @@ export default function NuovoCliente() {
                 <option value="pos">Pagato con POS</option>
                 <option value="bonifico">Paga con bonifico</option>
               </select>
+              <label className="text-sm">Importo EUR</label>
+              <input type="number" step="0.01" value={importo} onChange={e => setImporto(e.target.value)} placeholder="0.00" className="w-full border rounded-lg px-3 py-2" />
               {voci.map((v, i) => (
                 <input key={i} value={v} onChange={e => setVoci(prev => prev.map((x, n) => n === i ? e.target.value : x))} placeholder={'Descrizione ' + (i + 1)} className="w-full border rounded-lg px-3 py-2" />
               ))}
