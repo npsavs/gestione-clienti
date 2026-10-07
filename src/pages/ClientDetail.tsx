@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { format, parseISO, addYears, differenceInDays } from 'date-fns'
+import { format, parseISO, addYears } from 'date-fns'
 import { it } from 'date-fns/locale'
 import type { Client, Subscription, Intervention } from '../types'
 
@@ -40,8 +40,8 @@ export default function ClientDetail() {
     payment_type: 'pagato',
   })
   const [savingIntervention, setSavingIntervention] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'pagato' })
+
+  
   const [newSub, setNewSub] = useState({
     package_type: 'Classic',
     end_date: format(addYears(new Date(), 1), 'yyyy-MM-dd'),
