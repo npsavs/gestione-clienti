@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { format, parseISO, addYears, differenceInDays } from 'date-fns'
 import { it } from 'date-fns/locale'
 import type { Client, Subscription, Intervention } from '../types'
-
-
 
 async function prossimoNumeroFattura() {
   const year = new Date().getFullYear()
@@ -17,42 +15,41 @@ async function prossimoNumeroFattura() {
       if (m && Number(m[2]) === year) return Number(m[1])
       return 0
     })
-  const n = Math.max(0, ...usati) + 1
-  return n + '/' + year
+  return (Math.max(0, ...usati) + 1) + '/' + year
+}
+
+function etichettaPagamento(v?: string) {
+  if (v === 'garanzia') return 'In garanzia'
+  if (v === 'pos') return 'Pagato con POS'
+  if (v === 'bonifico') return 'Paga con bonifico'
+  return 'Pagato'
 }
 
 export default function ClientDetail() {
   const { id } = useParams()
-  const navigate = useNavigate()
-
   const [client, setClient] = useState<Client | null>(null)
   const [subscription, setSubscription] = useState<Subscription | null>(null)
   const [interventions, setInterventions] = useState<Intervention[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [creatingInvoice, setCreatingInvoice] = useState(false)
-
   const [newIntervention, setNewIntervention] = useState({
     intervention_date: format(new Date(), 'yyyy-MM-dd'),
     description: '',
+    amount: '',
+    payment_type: 'pagato',
   })
   const [savingIntervention, setSavingIntervention] = useState(false)
-
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({
-    intervention_date: '',
-    description: '',
-  })
-
+  const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'pagato' })
   const [newSub, setNewSub] = useState({
     package_type: 'Classic',
     end_date: format(addYears(new Date(), 1), 'yyyy-MM-dd'),
-    paid: false,
+    plant_type: 'Ajax',
+    has_sim_wuarda: false,
   })
 
-  useEffect(() => {
-    if (id) loadData()
-  }, [id])
+  useEffect(() => { if (id) loadData() }, [id])
 
   async function loadData() {
     setLoading(true)
@@ -65,70 +62,63 @@ export default function ClientDetail() {
     setLoading(false)
   }
 
+  function fatturabile(item: any) {
+    return item.payment_type !== 'garanzia' && !item.invoice_id
+  }
+
   function toggleIntervention(interventionId: string) {
+    const item = interventions.find(i => i.id === interventionId) as any
+    if (!fatturabile(item)) return
     setSelectedIds(prev => prev.includes(interventionId) ? prev.filter(x => x !== interventionId) : [...prev, interventionId])
   }
 
-  function toggleAllInterventions() {
-    if (selectedIds.length === interventions.length) setSelectedIds([])
-    else setSelectedIds(interventions.map(i => i.id))
-  }
-
   async function handleCreaFattura() {
-  if (!client || selectedIds.length === 0) return alert('Seleziona almeno un intervento')
-  const scelti = interventions.filter(i => selectedIds.includes(i.id))
-  if (!confirm('Aprire la fattura con ' + scelti.length + ' intervento/i? Il numero viene assegnato solo se salvi.')) return
-  setCreatingInvoice(true)
-
-  const numero = await prossimoNumeroFattura()
-  const oggetto = scelti.length === 1
-    ? 'Intervento del ' + format(parseISO(scelti[0].intervention_date), 'dd/MM/yyyy')
-    : 'Interventi (' + scelti.length + ')'
-
-  const { data: inv, error: invError } = await supabase.from('invoices').insert({
-    invoice_number: numero,
-    sdi_status: 'bozza',
-    client_id: client.id,
-    invoice_type: 'fattura',
-    oggetto,
-    invoice_date: format(new Date(), 'yyyy-MM-dd'),
-  }).select().single()
-
-  if (invError || !inv) {
+    if (!client || selectedIds.length === 0) return alert('Seleziona almeno un intervento')
+    const scelti = interventions.filter(i => selectedIds.includes(i.id) && fatturabile(i))
+    if (!scelti.length) return alert('In garanzia non si fattura')
+    if (!confirm('Aprire la fattura con ' + scelti.length + ' intervento/i?')) return
+    setCreatingInvoice(true)
+    const numero = await prossimoNumeroFattura()
+    const { data: inv, error: invError } = await supabase.from('invoices').insert({
+      invoice_number: numero,
+      sdi_status: 'bozza',
+      client_id: client.id,
+      invoice_type: 'fattura',
+      oggetto: 'Interventi (' + scelti.length + ')',
+      invoice_date: format(new Date(), 'yyyy-MM-dd'),
+    }).select().single()
+    if (invError || !inv) { setCreatingInvoice(false); return alert(invError?.message || 'errore') }
+    const { error: itemsError } = await supabase.from('invoice_items').insert(scelti.map(item => ({
+      invoice_id: inv.id,
+      name: format(parseISO(item.intervention_date), 'dd/MM/yyyy') + ' - ' + item.description,
+      description: item.description,
+      quantity: 1,
+      unit_price: Number((item as any).amount || 0),
+      vat_rate: 22,
+    })))
     setCreatingInvoice(false)
-    alert('Fattura non creata: ' + (invError?.message || 'errore'))
-    return
+    if (itemsError) { await supabase.from('invoices').delete().eq('id', inv.id); return alert(itemsError.message) }
+    for (const item of scelti) await supabase.from('interventions').update({ invoice_id: inv.id, invoice_number: numero }).eq('id', item.id)
+    setSelectedIds([])
+    loadData()
+    window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_blank')
   }
-
-  const righe = scelti.map(item => ({
-    invoice_id: inv.id,
-    name: format(parseISO(item.intervention_date), 'dd/MM/yyyy') + ' - ' + item.description,
-    description: item.description,
-    quantity: 1,
-    unit_price: 0,
-    vat_rate: 22,
-  }))
-
-  const { error: itemsError } = await supabase.from('invoice_items').insert(righe)
-  setCreatingInvoice(false)
-  if (itemsError) {
-    await supabase.from('invoices').delete().eq('id', inv.id)
-    alert('Righe non entrate, bozza cancellata: ' + itemsError.message)
-    return
-  }
-window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_blank')
-}
 
   async function handleRenew() {
     if (!subscription) return
     if (!confirm('Vuoi rinnovare l abbonamento di 1 anno?')) return
     const newEndDate = format(addYears(parseISO(subscription.end_date), 1), 'yyyy-MM-dd')
     const { error } = await supabase.from('subscriptions').update({ end_date: newEndDate }).eq('id', subscription.id)
-    if (error) alert('Errore durante il rinnovo: ' + error.message)
-    else {
-      alert('Abbonamento rinnovato fino al ' + format(parseISO(newEndDate), 'dd/MM/yyyy'))
-      loadData()
-    }
+    if (error) alert(error.message)
+    else loadData()
+  }
+
+  async function eliminaAbbonamento() {
+    if (!subscription) return alert('Questo cliente non ha un abbonamento')
+    if (!confirm('Eliminare solo l abbonamento? Il cliente resta.')) return
+    const { error } = await supabase.from('subscriptions').delete().eq('id', subscription.id)
+    if (error) alert(error.message)
+    else loadData()
   }
 
   async function handleAddSub(e: React.FormEvent) {
@@ -137,7 +127,8 @@ window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_
       client_id: id,
       end_date: newSub.end_date,
       package_type: newSub.package_type,
-      paid: newSub.paid,
+      plant_type: newSub.plant_type,
+      has_sim_wuarda: newSub.has_sim_wuarda,
       start_date: format(addYears(parseISO(newSub.end_date), -1), 'yyyy-MM-dd'),
     })
     if (error) return alert(error.message)
@@ -152,64 +143,36 @@ window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_
       client_id: id,
       intervention_date: newIntervention.intervention_date,
       description: newIntervention.description,
+      payment_type: newIntervention.payment_type,
+      amount: newIntervention.payment_type === 'garanzia' ? 0 : Number(newIntervention.amount || 0),
     })
-    if (error) alert('Errore: ' + error.message)
-    else {
-      setNewIntervention({ intervention_date: format(new Date(), 'yyyy-MM-dd'), description: '' })
-      loadData()
-    }
     setSavingIntervention(false)
+    if (error) return alert(error.message)
+    setNewIntervention({ intervention_date: format(new Date(), 'yyyy-MM-dd'), description: '', amount: '', payment_type: 'pagato' })
+    loadData()
   }
 
   async function handleDeleteIntervention(interventionId: string) {
     if (!confirm('Vuoi eliminare questo intervento?')) return
     const { error } = await supabase.from('interventions').delete().eq('id', interventionId)
-    if (error) alert('Errore durante l eliminazione: ' + error.message)
-    else {
-      setSelectedIds(prev => prev.filter(x => x !== interventionId))
-      loadData()
-    }
-  }
-
-  function startEdit(item: Intervention) {
-    setEditingId(item.id)
-    setEditForm({ intervention_date: item.intervention_date, description: item.description })
-  }
-
-  async function handleSaveEdit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!editingId) return
-    const { error } = await supabase.from('interventions').update({
-      intervention_date: editForm.intervention_date,
-      description: editForm.description,
-    }).eq('id', editingId)
-    if (error) alert('Errore durante la modifica: ' + error.message)
-    else {
-      setEditingId(null)
-      loadData()
-    }
+    if (error) alert(error.message)
+    else { setSelectedIds(prev => prev.filter(x => x !== interventionId)); loadData() }
   }
 
   function getStatus(sub: Subscription | null) {
     if (!sub) return { label: 'Nessun abbonamento', color: 'bg-gray-200 text-gray-700' }
-    const daysLeft = differenceInDays(parseISO(sub.end_date), new Date())
-    if (daysLeft < 0) return { label: 'Scaduto', color: 'bg-red-100 text-red-700' }
-    if (daysLeft <= 30) return { label: 'In scadenza (' + daysLeft + ' gg)', color: 'bg-yellow-100 text-yellow-800' }
+    const end = parseISO(sub.end_date)
+    const now = new Date()
+    const inizioMese = new Date(end.getFullYear(), end.getMonth(), 1)
+    const fineMese = new Date(end.getFullYear(), end.getMonth() + 1, 1)
+    if (now >= fineMese) return { label: 'Scaduto', color: 'bg-red-100 text-red-700' }
+    if (now >= inizioMese) return { label: 'In scadenza', color: 'bg-yellow-100 text-yellow-800' }
     return { label: 'Attivo', color: 'bg-green-100 text-green-700' }
-  }
-
-  function getWhatsAppLink() {
-    if (!client?.phone || !subscription) return null
-    const cleanPhone = client.phone.replace(/\D/g, '').replace(/^39/, '')
-    const message = 'Ciao ' + client.name + ', ti ricordiamo che il tuo abbonamento scade il ' + format(parseISO(subscription.end_date), 'dd/MM/yyyy') + '. Contattaci per il rinnovo. Grazie!'
-    return 'https://wa.me/39' + cleanPhone + '?text=' + encodeURIComponent(message)
   }
 
   if (loading) return <div className="text-center py-10">Caricamento...</div>
   if (!client) return <div className="text-center py-10">Cliente non trovato</div>
-
   const status = getStatus(subscription)
-  const whatsappLink = getWhatsAppLink()
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -219,12 +182,7 @@ window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_
         <p className="text-gray-600 break-words">{client.email || 'Nessuna email'} · {client.phone || 'Nessun telefono'}</p>
         <div className="flex flex-wrap gap-2">
           <Link to={'/client/' + client.id + '/modifica'} className="bg-gray-100 text-gray-800 px-4 py-2 rounded-lg text-sm">Modifica</Link>
-          <button type="button" onClick={async () => {
-            if (!confirm('Eliminare questo cliente?')) return
-            const { error } = await supabase.from('clients').delete().eq('id', client.id)
-            if (error) alert(error.message)
-            else navigate('/clienti')
-          }} className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm">Elimina</button>
+          <button type="button" onClick={eliminaAbbonamento} className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm">Elimina abbonamento</button>
         </div>
       </div>
 
@@ -239,85 +197,54 @@ window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_
             <p><strong>Scadenza:</strong> {format(parseISO(subscription.end_date), 'dd MMMM yyyy', { locale: it })}</p>
             <p><strong>SIM Wuarda:</strong> {subscription.has_sim_wuarda ? 'Si' : 'No'}</p>
             <p><strong>Impianto:</strong> {subscription.plant_type}{subscription.plant_type === 'Altro' && subscription.plant_type_other ? ' (' + subscription.plant_type_other + ')' : ''}</p>
-            <div className="flex flex-wrap gap-3 mt-4">
-              <button type="button" onClick={handleRenew} className="bg-green-600 text-white px-4 py-2 rounded-lg">Rinnova di 1 anno</button>
-              {whatsappLink ? <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="bg-emerald-500 text-white px-4 py-2 rounded-lg">Invia WhatsApp</a> : null}
-            </div>
+            <button type="button" onClick={handleRenew} className="bg-green-600 text-white px-4 py-2 rounded-lg mt-2">Rinnova di 1 anno</button>
           </div>
         ) : (
           <form onSubmit={handleAddSub} className="space-y-3">
             <p className="text-gray-500 text-sm">Nessun abbonamento. Aggiungilo qui.</p>
             <select value={newSub.package_type} onChange={e => setNewSub(s => ({ ...s, package_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
-              <option>Classic</option>
-              <option>Premium</option>
-              <option>Medium</option>
-              <option>Basic</option>
-              <option>Nuovo Impianto</option>
+              <option>Classic</option><option>Premium</option><option>Medium</option><option>Basic</option><option>Nuovo Impianto</option>
+            </select>
+            <select value={newSub.plant_type} onChange={e => setNewSub(s => ({ ...s, plant_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+              <option>Ajax</option><option>Ademco</option><option>Altro</option>
             </select>
             <input type="date" value={newSub.end_date} onChange={e => setNewSub(s => ({ ...s, end_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={newSub.paid} onChange={e => setNewSub(s => ({ ...s, paid: e.target.checked }))} />
-              Pagato
-            </label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={newSub.has_sim_wuarda} onChange={e => setNewSub(s => ({ ...s, has_sim_wuarda: e.target.checked }))} /> SIM Wuarda</label>
             <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg">Aggiungi abbonamento</button>
           </form>
         )}
       </div>
 
-      {client.notes ? (
-        <div className="bg-white rounded-xl shadow p-4 sm:p-6">
-          <h2 className="text-lg font-semibold mb-2">Note generali</h2>
-          <p className="text-gray-700 whitespace-pre-wrap break-words">{client.notes}</p>
-        </div>
-      ) : null}
-
       <div className="bg-white rounded-xl shadow p-4 sm:p-6">
         <div className="flex flex-wrap justify-between items-center gap-3 mb-4">
           <h2 className="text-lg font-semibold">Storico interventi</h2>
           <button type="button" onClick={handleCreaFattura} disabled={selectedIds.length === 0 || creatingInvoice} className="bg-violet-700 text-white px-4 py-2 rounded-lg disabled:opacity-40 text-sm">
-            {creatingInvoice ? 'Creazione...' : selectedIds.length === 0 ? 'Crea fattura' : 'Crea fattura (' + selectedIds.length + ')'}
+            {creatingInvoice ? 'Creazione...' : 'Crea fattura (' + selectedIds.length + ')'}
           </button>
         </div>
-
         <form onSubmit={handleAddIntervention} className="mb-6 space-y-3 border-b pb-6">
           <input type="date" value={newIntervention.intervention_date} onChange={e => setNewIntervention(prev => ({ ...prev, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
           <input type="text" placeholder="Descrizione intervento..." value={newIntervention.description} onChange={e => setNewIntervention(prev => ({ ...prev, description: e.target.value }))} className="w-full border rounded-lg px-3 py-2" required />
+          <select value={newIntervention.payment_type} onChange={e => setNewIntervention(prev => ({ ...prev, payment_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+            <option value="garanzia">In garanzia</option>
+            <option value="pagato">Pagato</option>
+            <option value="pos">Pagato con POS</option>
+            <option value="bonifico">Paga con bonifico</option>
+          </select>
+          <input type="number" step="0.01" placeholder="Importo EUR" value={newIntervention.amount} onChange={e => setNewIntervention(prev => ({ ...prev, amount: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
           <button type="submit" disabled={savingIntervention} className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50">Aggiungi</button>
         </form>
-
         {interventions.length === 0 ? <p className="text-gray-500">Nessun intervento registrato</p> : (
           <div className="space-y-3">
-            <label className="flex items-center gap-2 text-sm text-gray-600">
-              <input type="checkbox" checked={selectedIds.length === interventions.length && interventions.length > 0} onChange={toggleAllInterventions} />
-              Seleziona tutti
-            </label>
             {interventions.map(item => (
               <div key={item.id} className="border rounded-lg p-3 space-y-2">
-                {editingId === item.id ? (
-                  <form onSubmit={handleSaveEdit} className="space-y-2">
-                    <input type="date" value={editForm.intervention_date} onChange={e => setEditForm(prev => ({ ...prev, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                    <input type="text" value={editForm.description} onChange={e => setEditForm(prev => ({ ...prev, description: e.target.value }))} className="w-full border rounded-lg px-3 py-2 text-sm" required />
-                    <div className="flex flex-wrap gap-2">
-                      <button type="submit" className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Salva</button>
-                      <button type="button" onClick={() => setEditingId(null)} className="border px-3 py-1 rounded text-sm">Annulla</button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="space-y-2">
-                    <label className="flex items-start gap-3">
-                      <input type="checkbox" className="mt-1" checked={selectedIds.includes(item.id)} onChange={() => toggleIntervention(item.id)} />
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-500">{format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}</p>
-                        <p className="text-gray-800 break-words">{item.description}</p>
-                        <p className="text-xs text-slate-500 mt-1">{selectedIds.includes(item.id) ? 'Selezionato per fattura' : 'Da fatturare'}</p>
-                      </div>
-                    </label>
-                    <div className="flex flex-wrap gap-3 pl-7">
-                      <button type="button" onClick={() => startEdit(item)} className="text-blue-600 text-sm">Modifica</button>
-                      <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-red-600 text-sm">Elimina</button>
-                    </div>
-                  </div>
+                {(item as any).payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : (item as any).invoice_id ? <p className="text-xs text-green-700">Gia fatturato · {(item as any).invoice_number}</p> : (
+                  <label className="text-sm flex gap-2"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleIntervention(item.id)} /> Da fatturare</label>
                 )}
+                <p className="text-sm text-gray-500">{format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}</p>
+                <p className="text-gray-800 break-words">{item.description}</p>
+                <p className="text-sm">{Number((item as any).amount || 0).toFixed(2)} EUR · {etichettaPagamento((item as any).payment_type)}</p>
+                <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-red-600 text-sm">Elimina intervento</button>
               </div>
             ))}
           </div>
