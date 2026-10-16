@@ -119,6 +119,7 @@ export default function ModificaCliente() {
             <option value="Classic">Classic</option>
             <option value="Premium">Premium</option>
             <option value="Medium">Medium</option>
+<option value="Premium Plus">Premium Plus</option>
             <option value="Basic">Basic</option>
             <option value="Nuovo Impianto">Nuovo Impianto</option>
           </select>

@@ -104,7 +104,7 @@ export default function NuovoCliente() {
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
               <label className="text-sm">Tipo abbonamento</label>
               <select value={packageType} onChange={e => setPackageType(e.target.value)} className="w-full border rounded-lg px-3 py-2">
-                <option>Classic</option><option>Premium</option><option>Medium</option><option>Basic</option><option>Nuovo Impianto</option>
+                <option>Classic</option><option>Premium</option><option>Premium Plus</option><option>Medium</option><option>Basic</option><option>Nuovo Impianto</option>
               </select>
               <label className="text-sm">Impianto</label>
               <select value={plantType} onChange={e => setPlantType(e.target.value)} className="w-full border rounded-lg px-3 py-2">

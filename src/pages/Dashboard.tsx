@@ -5,7 +5,7 @@ import type { Client, Subscription } from '../types'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
 
-const PACCHETTI = ['Classic', 'Premium', 'Medium', 'Basic', 'Nuovo Impianto']
+const PACCHETTI = ['Classic', 'Premium', 'Premium Plus', 'Medium', 'Basic', 'Nuovo Impianto']
 
 export default function Dashboard() {
   const [clients, setClients] = useState<(Client & { subscription?: Subscription })[]>([])
