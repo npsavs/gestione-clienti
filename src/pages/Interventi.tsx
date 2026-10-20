@@ -11,6 +11,8 @@ export default function Interventi() {
   const [busy, setBusy] = useState(false)
   const [filtro, setFiltro] = useState('tutti')
 
+  const [ultimi, setUltimi] = useState<any[]>([])
+
   useEffect(() => {
     async function caricaClienti() {
       const tutti: any[] = []
@@ -25,6 +27,7 @@ export default function Interventi() {
       setClients(tutti)
     }
     caricaClienti()
+    supabase.from('interventions').select('*').order('intervention_date', { ascending: false }).limit(10).then(({ data }) => setUltimi(data || []))
   }, [])
 
   function carica(id: string) {
@@ -89,7 +92,6 @@ export default function Interventi() {
     if (filtro === 'non_pagato') return r.payment_type === 'da_fatturare' || r.payment_type === 'bonifico'
     return true
   })
-  const mostrati = clientId ? visibili : rows.slice(0, 10)
 
   return (
     <div className="space-y-4">
@@ -126,7 +128,7 @@ export default function Interventi() {
       ) : (
         <div className="space-y-2">
           <p className="text-sm text-slate-500">Ultimi 10 interventi</p>
-          {mostrati.map(item => (
+          {ultimi.map(item => (
             <div key={item.id} className="bg-white rounded-xl shadow p-4">
               <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
               <p className="text-sm text-slate-600">{item.description}</p>
