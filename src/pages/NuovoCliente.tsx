@@ -25,7 +25,19 @@ export default function NuovoCliente() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    supabase.from('clients').select('id, name, phone').order('name').then(({ data }) => setClients(data || []))
+    async function carica() {
+      const tutti: any[] = []
+      let start = 0
+      while (true) {
+        const { data } = await supabase.from('clients').select('id, name, phone').order('name').range(start, start + 999)
+        if (!data || data.length === 0) break
+        tutti.push(...data)
+        if (data.length < 1000) break
+        start += 1000
+      }
+      setClients(tutti)
+    }
+    carica()
   }, [])
 
   const trovati = q.trim().length < 2 ? [] : clients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()))
