@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { format, parseISO } from 'date-fns'
 
@@ -116,24 +117,24 @@ export default function Interventi() {
             {busy ? 'Creazione...' : 'Crea fattura (' + selected.length + ')'}
           </button>
           {visibili.map(item => (
-            <div key={item.id} className="bg-white rounded-xl shadow p-4 space-y-1">
+            <Link key={item.id} to={'/client/' + cliente.id} className="block bg-white rounded-xl shadow p-4 space-y-1 hover:bg-slate-50">
               {item.payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : item.invoice_id || item.payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {item.invoice_number || ''}</p> : (
-                <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
+                <label className="text-sm flex gap-2 items-center" onClick={e => e.preventDefault()}><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
               )}
               <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
               <p className="text-sm text-slate-600 break-words">{item.description}</p>
-            </div>
+            </Link>
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           <p className="text-sm text-slate-500">Ultimi 10 interventi</p>
           {ultimi.map(item => (
-            <div key={item.id} className="bg-white rounded-xl shadow p-4 space-y-1">
+            <Link key={item.id} to={'/client/' + item.client_id} className="block bg-white rounded-xl shadow p-4 space-y-1 hover:bg-slate-50">
               <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')} · {item.clients?.name || 'Senza cliente'}</p>
               <p className="text-sm text-slate-600">{item.description}</p>
               <p className="text-xs text-slate-500">{item.payment_type === 'fatturato' || item.invoice_id ? 'Fatturato' : item.payment_type === 'garanzia' ? 'In garanzia' : item.payment_type === 'da_fatturare' ? 'Da fatturare' : item.payment_type === 'pagato' ? 'Pagato' : item.payment_type || '-'}</p>
-            </div>
+            </Link>
           ))}
         </div>
       )}
