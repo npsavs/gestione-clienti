@@ -20,7 +20,7 @@ export default function NuovoCliente() {
   const [sim, setSim] = useState(false)
   const [dataIntervento, setDataIntervento] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [voci, setVoci] = useState([''])
-  const [pagamento, setPagamento] = useState('pagato')
+  const [pagamento, setPagamento] = useState('da_fatturare')
   const [importo, setImporto] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -132,6 +132,7 @@ export default function NuovoCliente() {
               <input type="date" value={dataIntervento} onChange={e => setDataIntervento(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
               <label className="text-sm">Pagamento</label>
               <select value={pagamento} onChange={e => setPagamento(e.target.value)} className="w-full border rounded-lg px-3 py-2">
+                <option value="da_fatturare">Da fatturare</option>
                 <option value="garanzia">In garanzia</option>
                 <option value="pagato">Pagato</option>
                 <option value="pos">Pagato con POS</option>

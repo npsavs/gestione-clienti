@@ -20,6 +20,7 @@ async function prossimoNumeroFattura() {
 
 function etichettaPagamento(v?: string) {
   if (v === 'garanzia') return 'In garanzia'
+  if (v === 'da_fatturare') return 'Da fatturare'
   if (v === 'pos') return 'Pagato con POS'
   if (v === 'bonifico') return 'Paga con bonifico'
   return 'Pagato'
@@ -37,7 +38,7 @@ export default function ClientDetail() {
     intervention_date: format(new Date(), 'yyyy-MM-dd'),
     description: '',
     amount: '',
-    payment_type: 'pagato',
+    payment_type: 'da_fatturare',
   })
   const [savingIntervention, setSavingIntervention] = useState(false)
 
@@ -98,7 +99,7 @@ export default function ClientDetail() {
     })))
     setCreatingInvoice(false)
     if (itemsError) { await supabase.from('invoices').delete().eq('id', inv.id); return alert(itemsError.message) }
-    for (const item of scelti) await supabase.from('interventions').update({ invoice_id: inv.id, invoice_number: numero }).eq('id', item.id)
+    for (const item of scelti) await supabase.from('interventions').update({ invoice_id: inv.id, invoice_number: numero, payment_type: 'fatturato' }).eq('id', item.id)
     setSelectedIds([])
     loadData()
     window.open('https://fatture-self.vercel.app/fattura/' + inv.id + '?nuova=1', '_blank')
@@ -148,7 +149,7 @@ export default function ClientDetail() {
     })
     setSavingIntervention(false)
     if (error) return alert(error.message)
-    setNewIntervention({ intervention_date: format(new Date(), 'yyyy-MM-dd'), description: '', amount: '', payment_type: 'pagato' })
+    setNewIntervention({ intervention_date: format(new Date(), 'yyyy-MM-dd'), description: '', amount: '', payment_type: 'da_fatturare' })
     loadData()
   }
 
@@ -226,6 +227,7 @@ export default function ClientDetail() {
           <input type="date" value={newIntervention.intervention_date} onChange={e => setNewIntervention(prev => ({ ...prev, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
           <input type="text" placeholder="Descrizione intervento..." value={newIntervention.description} onChange={e => setNewIntervention(prev => ({ ...prev, description: e.target.value }))} className="w-full border rounded-lg px-3 py-2" required />
           <select value={newIntervention.payment_type} onChange={e => setNewIntervention(prev => ({ ...prev, payment_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+            <option value="da_fatturare">Da fatturare</option>
             <option value="garanzia">In garanzia</option>
             <option value="pagato">Pagato</option>
             <option value="pos">Pagato con POS</option>

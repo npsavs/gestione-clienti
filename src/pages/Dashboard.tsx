@@ -13,11 +13,10 @@ export default function Dashboard() {
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('tutti')
   const [pacchetto, setPacchetto] = useState('')
-  const [pagato, setPagato] = useState('')
 
   useEffect(() => { loadClients() }, [])
 
-async function loadClients() {
+  async function loadClients() {
     setLoading(true)
     const tutti: any[] = []
     let start = 0
@@ -36,6 +35,7 @@ async function loadClients() {
       .filter(c => c.subscription || ids.has(c.id)))
     setLoading(false)
   }
+
   function getStatus(sub?: Subscription) {
     if (!sub || !sub.end_date) return { label: 'Solo intervento', color: 'bg-gray-200 text-gray-700', key: 'nessuno' }
     const end = parseISO(sub.end_date)
@@ -55,10 +55,10 @@ async function loadClients() {
       return end.getMonth() === now.getMonth() && end.getFullYear() === now.getFullYear()
     })
     if (daEsportare.length === 0) return alert('Nessun cliente in scadenza questo mese')
-    const header = ['Nome', 'Email', 'Telefono', 'Tipo Abbonamento', 'Data Scadenza', 'Pagato', 'SIM Wuarda']
+    const header = ['Nome', 'Email', 'Telefono', 'Tipo Abbonamento', 'Data Scadenza', 'SIM Wuarda']
     const rows = daEsportare.map(c => {
       const sub = c.subscription!
-      return [c.name, c.email || '', c.phone || '', sub.package_type || '', format(parseISO(sub.end_date), 'dd/MM/yyyy'), sub.paid ? 'Si' : 'No', sub.has_sim_wuarda ? 'Si' : 'No']
+      return [c.name, c.email || '', c.phone || '', sub.package_type || '', format(parseISO(sub.end_date), 'dd/MM/yyyy'), sub.has_sim_wuarda ? 'Si' : 'No']
     })
     const csvContent = [header, ...rows].map(row => row.map(cell => '"' + cell + '"').join(';')).join('\n')
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
@@ -88,15 +88,11 @@ async function loadClients() {
   const perStato = searched.filter(passaStato)
   const filtered = perStato.filter(c => {
     if (pacchetto && (c.subscription?.package_type || '') !== pacchetto) return false
-    if (pagato === 'si' && !c.subscription?.paid) return false
-    if (pagato === 'no' && (!c.subscription || c.subscription.paid)) return false
     return true
   })
 
   const nStato = (key: string) => searched.filter(c => getStatus(c.subscription).key === key).length
   const nPack = (name: string) => perStato.filter(c => (c.subscription?.package_type || '') === name).length
-  const nPagati = perStato.filter(c => !!c.subscription?.paid).length
-  const nNonPagati = perStato.filter(c => c.subscription && !c.subscription.paid).length
 
   if (loading) return <div className="text-center py-10">Caricamento clienti...</div>
 
@@ -112,7 +108,7 @@ async function loadClients() {
       <input type="text" placeholder="Scrivi almeno 2 lettere..." value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg px-4 py-2 mb-4" />
       <div className="flex gap-2 mb-3 flex-wrap">
         <button type="button" onClick={() => setFilter('tutti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100')}>Tutti ({searched.length})</button>
-        <button type="button" onClick={() => setFilter('attivi')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'attivi' ? 'bg-green-600 text-white' : 'bg-gray-100')}>Attivi ({nStato('attivo')})</button>
+        <button type="button" onClick={() => setFilter('attivi')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'attivi' ? 'bg-green-600 text-white' : 'bg-gray-100')}>Contratti attivi ({nStato('attivo')})</button>
         <button type="button" onClick={() => setFilter('scadenza')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-gray-100')}>In scadenza ({nStato('scadenza')})</button>
         <button type="button" onClick={() => setFilter('scaduti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scaduti' ? 'bg-red-600 text-white' : 'bg-gray-100')}>Scaduti ({nStato('scaduti')})</button>
         <button type="button" onClick={() => setFilter('nessuno')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'nessuno' ? 'bg-slate-700 text-white' : 'bg-gray-100')}>Solo intervento ({nStato('nessuno')})</button>
@@ -122,9 +118,6 @@ async function loadClients() {
         {PACCHETTI.map(p => (
           <button key={p} type="button" onClick={() => setPacchetto(p)} className={'px-4 py-1.5 rounded-full text-sm ' + (pacchetto === p ? 'bg-slate-900 text-white' : 'bg-gray-100')}>{p} ({nPack(p)})</button>
         ))}
-        <button type="button" onClick={() => setPagato('')} className={'px-4 py-1.5 rounded-full text-sm ' + (!pagato ? 'bg-emerald-700 text-white' : 'bg-gray-100')}>Pagamento tutti</button>
-        <button type="button" onClick={() => setPagato('si')} className={'px-4 py-1.5 rounded-full text-sm ' + (pagato === 'si' ? 'bg-emerald-700 text-white' : 'bg-gray-100')}>Pagati ({nPagati})</button>
-        <button type="button" onClick={() => setPagato('no')} className={'px-4 py-1.5 rounded-full text-sm ' + (pagato === 'no' ? 'bg-emerald-700 text-white' : 'bg-gray-100')}>Non pagati ({nNonPagati})</button>
         <button type="button" onClick={exportScadenzeMese} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta scadenze del mese</button>
       </div>
       {search.trim().length < 2 ? (

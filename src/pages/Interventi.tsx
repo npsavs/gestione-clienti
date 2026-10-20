@@ -9,9 +9,22 @@ export default function Interventi() {
   const [rows, setRows] = useState<any[]>([])
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
+  const [filtro, setFiltro] = useState('tutti')
 
   useEffect(() => {
-    supabase.from('clients').select('id, name').order('name').then(({ data }) => setClients(data || []))
+    async function caricaClienti() {
+      const tutti: any[] = []
+      let start = 0
+      while (true) {
+        const { data } = await supabase.from('clients').select('id, name').order('name').range(start, start + 999)
+        if (!data || data.length === 0) break
+        tutti.push(...data)
+        if (data.length < 1000) break
+        start += 1000
+      }
+      setClients(tutti)
+    }
+    caricaClienti()
   }, [])
 
   function carica(id: string) {
@@ -28,15 +41,14 @@ export default function Interventi() {
 
   function toggle(id: string) {
     const row = rows.find(r => r.id === id)
-    if (row?.invoice_id) return
-if (row?.payment_type === 'garanzia' || row?.invoice_id) return
+    if (row?.invoice_id || row?.payment_type === 'garanzia') return
     setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
   async function creaFattura() {
     if (!cliente || selected.length === 0) return alert('Seleziona almeno un intervento')
-    const scelti = rows.filter(i => selected.includes(i.id) && !i.invoice_id)
-    if (!scelti.length) return alert('Quelli selezionati sono gia fatturati')
+    const scelti = rows.filter(i => selected.includes(i.id) && !i.invoice_id && i.payment_type !== 'garanzia')
+    if (!scelti.length) return alert('Quelli selezionati sono gia fatturati o in garanzia')
     if (!confirm('Creare una fattura con ' + scelti.length + ' intervento/i?')) return
     setBusy(true)
     const year = new Date().getFullYear()
@@ -60,17 +72,24 @@ if (row?.payment_type === 'garanzia' || row?.invoice_id) return
       name: format(parseISO(item.intervention_date), 'dd/MM/yyyy') + ' - ' + item.description,
       description: item.description,
       quantity: 1,
-      unit_price: 0,
+      unit_price: Number(item.amount || 0),
       vat_rate: 22,
     })))
     for (const item of scelti) {
-      await supabase.from('interventions').update({ invoice_id: inv.data.id, invoice_number: numero }).eq('id', item.id)
+      await supabase.from('interventions').update({ invoice_id: inv.data.id, invoice_number: numero, payment_type: 'fatturato' }).eq('id', item.id)
     }
     setBusy(false)
     setSelected([])
     carica(cliente.id)
     window.open('https://fatture-self.vercel.app/fattura/' + inv.data.id, '_blank')
   }
+
+  const visibili = rows.filter(r => {
+    if (filtro === 'da_fatturare') return !r.invoice_id && r.payment_type !== 'garanzia' && r.payment_type !== 'fatturato'
+    if (filtro === 'non_pagato') return r.payment_type === 'da_fatturare' || r.payment_type === 'bonifico'
+    return true
+  })
+  const mostrati = clientId ? visibili : rows.slice(0, 10)
 
   return (
     <div className="space-y-4">
@@ -83,23 +102,38 @@ if (row?.payment_type === 'garanzia' || row?.invoice_id) return
           ))}
         </div>
       ) : <p className="text-sm text-slate-500">Nessun elenco finche non cerchi</p>}
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => setFiltro('tutti')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'tutti' ? 'bg-slate-900 text-white' : 'border')}>Tutti</button>
+        <button type="button" onClick={() => setFiltro('da_fatturare')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'da_fatturare' ? 'bg-amber-600 text-white' : 'border')}>Da fatturare</button>
+        <button type="button" onClick={() => setFiltro('non_pagato')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'non_pagato' ? 'bg-red-600 text-white' : 'border')}>Non pagato</button>
+      </div>
       {cliente ? (
         <div className="space-y-3">
-          <p className="font-semibold">{cliente.name} · {rows.length} interventi</p>
+          <p className="font-semibold">{cliente.name} · {visibili.length} interventi</p>
           <button type="button" onClick={creaFattura} disabled={selected.length === 0 || busy} className="bg-violet-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-40">
             {busy ? 'Creazione...' : 'Crea fattura (' + selected.length + ')'}
           </button>
-          {rows.map(item => (
+          {visibili.map(item => (
             <div key={item.id} className="bg-white rounded-xl shadow p-4 space-y-1">
-              {item.payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : item.invoice_id ? <p className="text-xs text-green-700">Gia fatturato · {item.invoice_number}</p> : (
-  <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare · {item.payment_type || 'pagato'}</label>
-)}
+              {item.payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : item.invoice_id || item.payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {item.invoice_number || ''}</p> : (
+                <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
+              )}
               <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
               <p className="text-sm text-slate-600 break-words">{item.description}</p>
             </div>
           ))}
         </div>
-      ) : null}
+      ) : (
+        <div className="space-y-2">
+          <p className="text-sm text-slate-500">Ultimi 10 interventi</p>
+          {mostrati.map(item => (
+            <div key={item.id} className="bg-white rounded-xl shadow p-4">
+              <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
+              <p className="text-sm text-slate-600">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
