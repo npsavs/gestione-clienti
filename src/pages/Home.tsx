@@ -13,7 +13,9 @@ export default function Home() {
   useEffect(() => {
     supabase.from('clients').select('id, name, phone').then(({ data }) => setClients(data || []))
     supabase.from('subscriptions').select('*').then(({ data }) => setSubs(data || []))
-    supabase.from('interventions').select('id, invoice_id').then(({ data }) => setAperti((data || []).filter(i => !i.invoice_id).length))
+    supabase.from('interventions').select('id, invoice_id, payment_type').then(({ data }) => {
+      setAperti((data || []).filter(i => !i.invoice_id && i.payment_type !== 'garanzia').length)
+    })
   }, [])
 
   const byClient = Object.fromEntries(clients.map(c => [c.id, c]))
