@@ -40,7 +40,8 @@ export default function ClientDetail() {
     amount: '',
     payment_type: 'da_fatturare',
   })
-  const [savingIntervention, setSavingIntervention] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'da_fatturare' })
 
   
   const [newSub, setNewSub] = useState({
@@ -160,6 +161,29 @@ export default function ClientDetail() {
     else { setSelectedIds(prev => prev.filter(x => x !== interventionId)); loadData() }
   }
 
+  function iniziaModifica(item: any) {
+    setEditingId(item.id)
+    setEditForm({
+      intervention_date: item.intervention_date,
+      description: item.description || '',
+      amount: String(item.amount || ''),
+      payment_type: item.payment_type || 'da_fatturare',
+    })
+  }
+
+  async function salvaModifica() {
+    if (!editingId) return
+    const { error } = await supabase.from('interventions').update({
+      intervention_date: editForm.intervention_date,
+      description: editForm.description,
+      amount: editForm.payment_type === 'garanzia' ? 0 : Number(editForm.amount || 0),
+      payment_type: editForm.payment_type,
+    }).eq('id', editingId)
+    if (error) return alert(error.message)
+    setEditingId(null)
+    loadData()
+  }
+
   function getStatus(sub: Subscription | null) {
     if (!sub) return { label: 'Nessun abbonamento', color: 'bg-gray-200 text-gray-700' }
     const end = parseISO(sub.end_date)
@@ -240,13 +264,38 @@ export default function ClientDetail() {
           <div className="space-y-3">
             {interventions.map(item => (
               <div key={item.id} className="border rounded-lg p-3 space-y-2">
-                {(item as any).payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : (item as any).invoice_id ? <p className="text-xs text-green-700">Gia fatturato · {(item as any).invoice_number}</p> : (
-                  <label className="text-sm flex gap-2"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleIntervention(item.id)} /> Da fatturare</label>
+                {editingId === item.id ? (
+                  <div className="space-y-2">
+                    <input type="date" value={editForm.intervention_date} onChange={e => setEditForm(f => ({ ...f, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
+                    <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
+                    <select value={editForm.payment_type} onChange={e => setEditForm(f => ({ ...f, payment_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+                      <option value="da_fatturare">Da fatturare</option>
+                      <option value="garanzia">In garanzia</option>
+                      <option value="pagato">Pagato</option>
+                      <option value="pos">Pagato con POS</option>
+                      <option value="bonifico">Paga con bonifico</option>
+                      <option value="fatturato">Fatturato</option>
+                    </select>
+                    <input type="number" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} placeholder="Importo" className="w-full border rounded-lg px-3 py-2" />
+                    <div className="flex gap-2">
+                      <button type="button" onClick={salvaModifica} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Salva</button>
+                      <button type="button" onClick={() => setEditingId(null)} className="border px-3 py-1 rounded text-sm">Annulla</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {(item as any).payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : (item as any).invoice_id || (item as any).payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {(item as any).invoice_number}</p> : (
+                      <label className="text-sm flex gap-2"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleIntervention(item.id)} /> Da fatturare</label>
+                    )}
+                    <p className="text-sm text-gray-500">{format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}</p>
+                    <p className="text-gray-800 break-words">{item.description}</p>
+                    <p className="text-sm">{Number((item as any).amount || 0).toFixed(2)} EUR · {etichettaPagamento((item as any).payment_type)}</p>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => iniziaModifica(item)} className="text-blue-600 text-sm">Modifica</button>
+                      <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-red-600 text-sm">Elimina</button>
+                    </div>
+                  </>
                 )}
-                <p className="text-sm text-gray-500">{format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}</p>
-                <p className="text-gray-800 break-words">{item.description}</p>
-                <p className="text-sm">{Number((item as any).amount || 0).toFixed(2)} EUR · {etichettaPagamento((item as any).payment_type)}</p>
-                <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-red-600 text-sm">Elimina intervento</button>
               </div>
             ))}
           </div>
