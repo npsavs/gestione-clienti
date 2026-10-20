@@ -17,19 +17,25 @@ export default function Dashboard() {
 
   useEffect(() => { loadClients() }, [])
 
-  async function loadClients() {
+async function loadClients() {
     setLoading(true)
-    const { data: clientsData, error } = await supabase.from('clients').select('*').order('name')
-    if (error) { setLoading(false); return }
+    const tutti: any[] = []
+    let start = 0
+    while (true) {
+      const { data: cl, error } = await supabase.from('clients').select('*').order('name').range(start, start + 999)
+      if (error || !cl || cl.length === 0) break
+      tutti.push(...cl)
+      if (cl.length < 1000) break
+      start += 1000
+    }
     const { data: subsData } = await supabase.from('subscriptions').select('*')
     const { data: inter } = await supabase.from('interventions').select('client_id')
     const ids = new Set((inter || []).map(i => i.client_id))
-    setClients((clientsData || [])
+    setClients(tutti
       .map(client => ({ ...client, subscription: (subsData || []).find(s => s.client_id === client.id) }))
       .filter(c => c.subscription || ids.has(c.id)))
     setLoading(false)
   }
-
   function getStatus(sub?: Subscription) {
     if (!sub || !sub.end_date) return { label: 'Solo intervento', color: 'bg-gray-200 text-gray-700', key: 'nessuno' }
     const end = parseISO(sub.end_date)
