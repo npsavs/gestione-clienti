@@ -290,9 +290,9 @@ export default function ClientDetail() {
                     <p className="text-sm text-gray-500">{format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}</p>
                     <p className="text-gray-800 break-words">{item.description}</p>
                     <p className="text-sm">{Number((item as any).amount || 0).toFixed(2)} EUR · {etichettaPagamento((item as any).payment_type)}</p>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => iniziaModifica(item)} className="text-blue-600 text-sm">Modifica</button>
-                      <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-red-600 text-sm">Elimina</button>
+                    <div className="flex gap-2 pt-1">
+                      <button type="button" onClick={() => iniziaModifica(item)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">Modifica</button>
+                      <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-sm text-red-600 border border-red-300 px-3 py-1 rounded">Elimina</button>
                     </div>
                   </>
                 )}
