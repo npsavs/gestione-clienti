@@ -27,7 +27,7 @@ export default function Interventi() {
       setClients(tutti)
     }
     caricaClienti()
-    supabase.from('interventions').select('*').order('intervention_date', { ascending: false }).limit(10).then(({ data }) => setUltimi(data || []))
+    supabase.from('interventions').select('*, clients(name)').order('intervention_date', { ascending: false }).limit(10).then(({ data }) => setUltimi(data || []))
   }, [])
 
   function carica(id: string) {
@@ -129,9 +129,10 @@ export default function Interventi() {
         <div className="space-y-2">
           <p className="text-sm text-slate-500">Ultimi 10 interventi</p>
           {ultimi.map(item => (
-            <div key={item.id} className="bg-white rounded-xl shadow p-4">
-              <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
+            <div key={item.id} className="bg-white rounded-xl shadow p-4 space-y-1">
+              <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')} · {item.clients?.name || 'Senza cliente'}</p>
               <p className="text-sm text-slate-600">{item.description}</p>
+              <p className="text-xs text-slate-500">{item.payment_type === 'fatturato' || item.invoice_id ? 'Fatturato' : item.payment_type === 'garanzia' ? 'In garanzia' : item.payment_type === 'da_fatturare' ? 'Da fatturare' : item.payment_type === 'pagato' ? 'Pagato' : item.payment_type || '-'}</p>
             </div>
           ))}
         </div>
