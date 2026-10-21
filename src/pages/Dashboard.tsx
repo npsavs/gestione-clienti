@@ -130,7 +130,7 @@ export default function Dashboard() {
                 <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Link to={'/client/' + client.id} className="text-sm border px-3 py-1 rounded-lg">Scheda</Link>
-                  <Link to={'/client/' + client.id + '/modifica'} className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg">Aggiungi abbonamento</Link>
+                  {!client.subscription ? <Link to={'/client/' + client.id + '/modifica'} className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg">Aggiungi abbonamento</Link> : null}
                 </div>
               </div>
             )
