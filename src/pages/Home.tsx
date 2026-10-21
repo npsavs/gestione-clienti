@@ -86,6 +86,7 @@ export default function Home() {
           <Link key={s.id} to={'/client/' + s.client_id} className="block px-4 py-3 hover:bg-slate-50">
             <p className="font-medium">{byClient[s.client_id]?.name || 'Cliente'}</p>
             <p className="text-sm text-slate-500">{s.package_type || '-'} · {format(parseISO(s.end_date), 'dd MMM yyyy', { locale: it })}</p>
+            <p className="text-xs text-slate-400">{s.notes?.match(/SIM Wuarda: (\d+)/)?.[1] ? 'SIM Wuarda: ' + s.notes.match(/SIM Wuarda: (\d+)/)[1] : s.has_sim_wuarda ? 'SIM Wuarda' : ''} · {gruppo(s) === 'attivi' ? 'Attivo' : gruppo(s) === 'scadenza' ? 'In scadenza' : 'Scaduto'}</p>
           </Link>
         ))}
       </div>

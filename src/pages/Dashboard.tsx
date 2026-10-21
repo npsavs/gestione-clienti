@@ -127,6 +127,7 @@ export default function Dashboard() {
                 <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
                 <p className="text-sm text-gray-600 break-words">{client.email || '-'} · {client.phone || '-'}</p>
                 <p className="text-sm">{client.subscription?.package_type || '-'}</p>
+                <p className="text-sm text-slate-500">{(client.subscription as any)?.notes?.match(/SIM Wuarda: (\d+)/)?.[1] ? 'SIM Wuarda: ' + (client.subscription as any).notes.match(/SIM Wuarda: (\d+)/)[1] : client.subscription?.has_sim_wuarda ? 'SIM Wuarda' : ''}</p>
                 <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Link to={'/client/' + client.id} className="text-sm border px-3 py-1 rounded-lg">Scheda</Link>
