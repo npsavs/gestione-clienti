@@ -9,7 +9,7 @@ export default function NuovoCliente() {
   const [clients, setClients] = useState<any[]>([])
   const [q, setQ] = useState('')
   const [clientId, setClientId] = useState('')
-  const [nuovo, setNuovo] = useState(false)
+  const [fittizio, setFittizio] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -45,8 +45,14 @@ export default function NuovoCliente() {
 
   async function assicuratiCliente() {
     if (clientId) return clientId
-    if (!name.trim()) { alert('Scrivi il nome del nuovo cliente'); return '' }
-    const ins = await supabase.from('clients').insert({ name: name.trim(), phone: phone || null, email: email || null, kind: 'cliente' }).select().single()
+    if (!name.trim()) { alert('Scrivi il nome'); return '' }
+    const ins = await supabase.from('clients').insert({
+      name: name.trim(),
+      phone: phone || null,
+      email: email || null,
+      kind: fittizio ? 'fittizio' : 'cliente',
+      notes: fittizio ? 'FITTIZIO' : null,
+    }).select().single()
     if (ins.error || !ins.data) { alert(ins.error?.message || 'Cliente non creato'); return '' }
     return ins.data.id
   }
@@ -103,12 +109,17 @@ export default function NuovoCliente() {
             <button key={c.id} type="button" onClick={() => { setClientId(c.id); setNuovo(false) }} className={'block w-full text-left px-3 py-2 rounded ' + (clientId === c.id ? 'bg-blue-50 font-medium' : '')}>{c.name}</button>
           ))}
           {scelto ? <p className="text-sm text-green-700">Cliente: {scelto.name}</p> : null}
-          <button type="button" onClick={() => { setNuovo(!nuovo); setClientId('') }} className="text-sm text-blue-600">Aggiungi cliente nuovo</button>
-          {nuovo ? (
+          <button type="button" onClick={() => { setNuovo(!nuovo); setClientId(''); setFittizio(false) }} className="text-sm text-blue-600">Aggiungi cliente nuovo</button>
+          <button type="button" onClick={() => { setFittizio(!fittizio); setNuovo(true); setClientId('') }} className={'text-sm ' + (fittizio ? 'text-amber-600 font-medium' : 'text-slate-500')}>Nome fittizio (non in anagrafica)</button>
+          {nuovo || fittizio ? (
             <div className="space-y-2">
-              <input value={name} onChange={e => setName(e.target.value)} placeholder="Nome *" className="w-full border rounded-lg px-3 py-2" />
-              <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telefono" className="w-full border rounded-lg px-3 py-2" />
-              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full border rounded-lg px-3 py-2" />
+              <input value={name} onChange={e => setName(e.target.value)} placeholder={fittizio ? 'Nome fittizio *' : 'Nome *'} className="w-full border rounded-lg px-3 py-2" />
+              {!fittizio ? (
+                <>
+                  <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="Telefono" className="w-full border rounded-lg px-3 py-2" />
+                  <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" className="w-full border rounded-lg px-3 py-2" />
+                </>
+              ) : null}
             </div>
           ) : null}
           {modo === 'abbonamento' ? (

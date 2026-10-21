@@ -30,7 +30,7 @@ export default function Dashboard() {
     const { data: subsData } = await supabase.from('subscriptions').select('*')
     setClients(tutti
       .map(client => ({ ...client, subscription: (subsData || []).find(s => s.client_id === client.id) }))
-      .filter(c => c.subscription))
+      .filter(c => c.subscription && (c as any).kind !== 'fittizio'))
     setLoading(false)
   }
 
