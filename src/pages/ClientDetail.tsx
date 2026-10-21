@@ -40,6 +40,7 @@ export default function ClientDetail() {
     amount: '',
     payment_type: 'da_fatturare',
   })
+  const [savingIntervention, setSavingIntervention] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'da_fatturare' })
 
