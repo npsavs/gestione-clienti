@@ -11,7 +11,7 @@ export default function Dashboard() {
   const [clients, setClients] = useState<(Client & { subscription?: Subscription })[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('tutti')
+  const [filter, setFilter] = useState('scadenza')
   const [pacchetto, setPacchetto] = useState('')
 
   useEffect(() => { loadClients() }, [])
@@ -28,16 +28,14 @@ export default function Dashboard() {
       start += 1000
     }
     const { data: subsData } = await supabase.from('subscriptions').select('*')
-    const { data: inter } = await supabase.from('interventions').select('client_id')
-    const ids = new Set((inter || []).map(i => i.client_id))
     setClients(tutti
       .map(client => ({ ...client, subscription: (subsData || []).find(s => s.client_id === client.id) }))
-      .filter(c => c.subscription || ids.has(c.id)))
+      .filter(c => c.subscription))
     setLoading(false)
   }
 
   function getStatus(sub?: Subscription) {
-    if (!sub || !sub.end_date) return { label: 'Solo intervento', color: 'bg-gray-200 text-gray-700', key: 'nessuno' }
+    if (!sub || !sub.end_date) return { label: '-', color: 'bg-gray-200', key: 'nessuno' }
     const end = parseISO(sub.end_date)
     const now = new Date()
     const inizioMese = new Date(end.getFullYear(), end.getMonth(), 1)
@@ -70,28 +68,27 @@ export default function Dashboard() {
     URL.revokeObjectURL(url)
   }
 
-  const searched = clients.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.email || '').toLowerCase().includes(search.toLowerCase()) ||
-    (c.phone || '').includes(search)
-  )
+  const cerca = search.trim().toLowerCase()
+  const base = clients.filter(c => {
+    if (!cerca) return true
+    return c.name.toLowerCase().includes(cerca) || (c.email || '').toLowerCase().includes(cerca) || (c.phone || '').includes(cerca)
+  })
 
-  function passaStato(c: (typeof searched)[number]) {
+  function passaStato(c: (typeof base)[number]) {
     const key = getStatus(c.subscription).key
     if (filter === 'attivi' && key !== 'attivo') return false
     if (filter === 'scadenza' && key !== 'scadenza') return false
     if (filter === 'scaduti' && key !== 'scaduti') return false
-    if (filter === 'nessuno' && key !== 'nessuno') return false
     return true
   }
 
-  const perStato = searched.filter(passaStato)
+  const perStato = base.filter(passaStato)
   const filtered = perStato.filter(c => {
     if (pacchetto && (c.subscription?.package_type || '') !== pacchetto) return false
     return true
   })
 
-  const nStato = (key: string) => searched.filter(c => getStatus(c.subscription).key === key).length
+  const nStato = (key: string) => base.filter(c => getStatus(c.subscription).key === key).length
   const nPack = (name: string) => perStato.filter(c => (c.subscription?.package_type || '') === name).length
 
   if (loading) return <div className="text-center py-10">Caricamento clienti...</div>
@@ -105,13 +102,12 @@ export default function Dashboard() {
         </div>
         <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nuovo</Link>
       </div>
-      <input type="text" placeholder="Scrivi almeno 2 lettere..." value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg px-4 py-2 mb-4" />
+      <input type="text" placeholder="Cerca nome, email o telefono..." value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg px-4 py-2 mb-4" />
       <div className="flex gap-2 mb-3 flex-wrap">
-        <button type="button" onClick={() => setFilter('tutti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100')}>Tutti ({searched.length})</button>
+        <button type="button" onClick={() => setFilter('tutti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100')}>Tutti ({base.length})</button>
         <button type="button" onClick={() => setFilter('attivi')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'attivi' ? 'bg-green-600 text-white' : 'bg-gray-100')}>Contratti attivi ({nStato('attivo')})</button>
         <button type="button" onClick={() => setFilter('scadenza')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-gray-100')}>In scadenza ({nStato('scadenza')})</button>
         <button type="button" onClick={() => setFilter('scaduti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scaduti' ? 'bg-red-600 text-white' : 'bg-gray-100')}>Scaduti ({nStato('scaduti')})</button>
-        <button type="button" onClick={() => setFilter('nessuno')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'nessuno' ? 'bg-slate-700 text-white' : 'bg-gray-100')}>Solo intervento ({nStato('nessuno')})</button>
       </div>
       <div className="flex gap-2 mb-6 flex-wrap">
         <button type="button" onClick={() => setPacchetto('')} className={'px-4 py-1.5 rounded-full text-sm ' + (!pacchetto ? 'bg-slate-900 text-white' : 'bg-gray-100')}>Tutti i tipi ({perStato.length})</button>
@@ -120,10 +116,8 @@ export default function Dashboard() {
         ))}
         <button type="button" onClick={exportScadenzeMese} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta scadenze del mese</button>
       </div>
-      {search.trim().length < 2 ? (
-        <p className="text-sm text-slate-500">I clienti compaiono solo dopo la ricerca.</p>
-      ) : filtered.length === 0 ? (
-        <p className="text-gray-500 text-center py-10">Nessun cliente trovato</p>
+      {filtered.length === 0 ? (
+        <p className="text-gray-500 text-center py-10">Nessun cliente</p>
       ) : (
         <div className="space-y-2">
           {filtered.map(client => {
@@ -132,7 +126,7 @@ export default function Dashboard() {
               <div key={client.id} className="bg-white rounded-xl shadow p-4 space-y-2">
                 <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
                 <p className="text-sm text-gray-600 break-words">{client.email || '-'} · {client.phone || '-'}</p>
-                <p className="text-sm">{client.subscription?.package_type || 'Nessun pacchetto'}</p>
+                <p className="text-sm">{client.subscription?.package_type || '-'}</p>
                 <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Link to={'/client/' + client.id} className="text-sm border px-3 py-1 rounded-lg">Scheda</Link>

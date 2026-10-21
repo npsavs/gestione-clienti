@@ -8,11 +8,12 @@ export default function Interventi() {
   const [q, setQ] = useState('')
   const [clientId, setClientId] = useState('')
   const [rows, setRows] = useState<any[]>([])
+  const [ultimi, setUltimi] = useState<any[]>([])
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [filtro, setFiltro] = useState('tutti')
-
-  const [ultimi, setUltimi] = useState<any[]>([])
+  const [editing, setEditing] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ description: '', amount: '', payment_type: 'da_fatturare', intervention_date: '' })
 
   useEffect(() => {
     async function caricaClienti() {
@@ -28,11 +29,15 @@ export default function Interventi() {
       setClients(tutti)
     }
     caricaClienti()
-    supabase.from('interventions').select('*, clients(name)').order('intervention_date', { ascending: false }).limit(10).then(({ data }) => setUltimi(data || []))
+    caricaUltimi()
   }, [])
 
+  function caricaUltimi() {
+    supabase.from('interventions').select('*, clients(name)').order('created_at', { ascending: false }).limit(10).then(({ data }) => setUltimi(data || []))
+  }
+
   function carica(id: string) {
-    supabase.from('interventions').select('*').eq('client_id', id).order('intervention_date', { ascending: false }).then(({ data }) => setRows(data || []))
+    supabase.from('interventions').select('*').eq('client_id', id).order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
   }
 
   useEffect(() => {
@@ -85,30 +90,65 @@ export default function Interventi() {
     setBusy(false)
     setSelected([])
     carica(cliente.id)
+    caricaUltimi()
     window.open('https://fatture-self.vercel.app/fattura/' + inv.data.id, '_blank')
   }
 
+  async function elimina(id: string) {
+    if (!confirm('Eliminare questo intervento?')) return
+    await supabase.from('interventions').delete().eq('id', id)
+    if (clientId) carica(clientId)
+    caricaUltimi()
+  }
+
+  function iniziaEdit(item: any) {
+    setEditing(item.id)
+    setEditForm({
+      description: item.description || '',
+      amount: String(item.amount || ''),
+      payment_type: item.payment_type || 'da_fatturare',
+      intervention_date: item.intervention_date || '',
+    })
+  }
+
+  async function salvaEdit() {
+    if (!editing) return
+    await supabase.from('interventions').update({
+      description: editForm.description,
+      amount: editForm.payment_type === 'garanzia' ? 0 : Number(editForm.amount || 0),
+      payment_type: editForm.payment_type,
+      intervention_date: editForm.intervention_date,
+    }).eq('id', editing)
+    setEditing(null)
+    if (clientId) carica(clientId)
+    caricaUltimi()
+  }
+
   const visibili = rows.filter(r => {
+    if (filtro === 'pagato') return r.payment_type === 'pagato'
+    if (filtro === 'pos') return r.payment_type === 'pos'
+    if (filtro === 'bonifico') return r.payment_type === 'bonifico'
     if (filtro === 'da_fatturare') return !r.invoice_id && r.payment_type !== 'garanzia' && r.payment_type !== 'fatturato'
-    if (filtro === 'non_pagato') return r.payment_type === 'da_fatturare' || r.payment_type === 'bonifico'
     return true
   })
 
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Interventi</h1>
-      <input value={q} onChange={e => setQ(e.target.value)} placeholder="Scrivi almeno 2 lettere del cliente..." className="w-full border rounded-lg px-3 py-2" />
+      <input value={q} onChange={e => setQ(e.target.value)} placeholder="Cerca cliente, almeno 2 lettere..." className="w-full border rounded-lg px-3 py-2" />
       {q.trim().length >= 2 ? (
         <div className="bg-white rounded-xl shadow divide-y">
           {trovati.map(c => (
             <button key={c.id} type="button" onClick={() => { setClientId(c.id); setQ(c.name) }} className={'block w-full text-left px-3 py-2 text-sm ' + (clientId === c.id ? 'bg-blue-50 font-medium' : '')}>{c.name}</button>
           ))}
         </div>
-      ) : <p className="text-sm text-slate-500">Nessun elenco finche non cerchi</p>}
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setFiltro('tutti')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'tutti' ? 'bg-slate-900 text-white' : 'border')}>Tutti</button>
         <button type="button" onClick={() => setFiltro('da_fatturare')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'da_fatturare' ? 'bg-amber-600 text-white' : 'border')}>Da fatturare</button>
-        <button type="button" onClick={() => setFiltro('non_pagato')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'non_pagato' ? 'bg-red-600 text-white' : 'border')}>Non pagato</button>
+        <button type="button" onClick={() => setFiltro('pagato')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'pagato' ? 'bg-green-600 text-white' : 'border')}>Pagato</button>
+        <button type="button" onClick={() => setFiltro('pos')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'pos' ? 'bg-blue-600 text-white' : 'border')}>Pagato con POS</button>
+        <button type="button" onClick={() => setFiltro('bonifico')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'bonifico' ? 'bg-purple-600 text-white' : 'border')}>Paga con bonifico</button>
       </div>
       {cliente ? (
         <div className="space-y-3">
@@ -117,13 +157,40 @@ export default function Interventi() {
             {busy ? 'Creazione...' : 'Crea fattura (' + selected.length + ')'}
           </button>
           {visibili.map(item => (
-            <Link key={item.id} to={'/client/' + cliente.id} className="block bg-white rounded-xl shadow p-4 space-y-1 hover:bg-slate-50">
-              {item.payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : item.invoice_id || item.payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {item.invoice_number || ''}</p> : (
-                <label className="text-sm flex gap-2 items-center" onClick={e => e.preventDefault()}><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
+            <div key={item.id} className="bg-white rounded-xl shadow p-4 space-y-1">
+              {editing === item.id ? (
+                <div className="space-y-2">
+                  <input type="date" value={editForm.intervention_date} onChange={e => setEditForm(f => ({ ...f, intervention_date: e.target.value }))} className="w-full border rounded px-2 py-1" />
+                  <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="w-full border rounded px-2 py-1" />
+                  <select value={editForm.payment_type} onChange={e => setEditForm(f => ({ ...f, payment_type: e.target.value }))} className="w-full border rounded px-2 py-1">
+                    <option value="da_fatturare">Da fatturare</option>
+                    <option value="pagato">Pagato</option>
+                    <option value="pos">Pagato con POS</option>
+                    <option value="bonifico">Paga con bonifico</option>
+                    <option value="garanzia">In garanzia</option>
+                    <option value="fatturato">Fatturato</option>
+                  </select>
+                  <input type="number" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} placeholder="Importo" className="w-full border rounded px-2 py-1" />
+                  <div className="flex gap-2">
+                    <button type="button" onClick={salvaEdit} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Salva</button>
+                    <button type="button" onClick={() => setEditing(null)} className="border px-3 py-1 rounded text-sm">Annulla</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {item.payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : item.invoice_id || item.payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {item.invoice_number || ''}</p> : (
+                    <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
+                  )}
+                  <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
+                  <p className="text-sm text-slate-600 break-words">{item.description}</p>
+                  <p className="text-xs text-slate-500">{item.payment_type || '-'} · {Number(item.amount || 0).toFixed(2)} EUR</p>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => iniziaEdit(item)} className="text-blue-600 text-sm">Modifica</button>
+                    <button type="button" onClick={() => elimina(item.id)} className="text-red-600 text-sm">Elimina</button>
+                  </div>
+                </>
               )}
-              <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
-              <p className="text-sm text-slate-600 break-words">{item.description}</p>
-            </Link>
+            </div>
           ))}
         </div>
       ) : (
@@ -131,9 +198,9 @@ export default function Interventi() {
           <p className="text-sm text-slate-500">Ultimi 10 interventi</p>
           {ultimi.map(item => (
             <Link key={item.id} to={'/client/' + item.client_id} className="block bg-white rounded-xl shadow p-4 space-y-1 hover:bg-slate-50">
-              <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')} · {item.clients?.name || 'Senza cliente'}</p>
+              <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')} · {item.clients?.name || 'Cliente'}</p>
               <p className="text-sm text-slate-600">{item.description}</p>
-              <p className="text-xs text-slate-500">{item.payment_type === 'fatturato' || item.invoice_id ? 'Fatturato' : item.payment_type === 'garanzia' ? 'In garanzia' : item.payment_type === 'da_fatturare' ? 'Da fatturare' : item.payment_type === 'pagato' ? 'Pagato' : item.payment_type || '-'}</p>
+              <p className="text-xs text-slate-500">{item.payment_type || '-'}</p>
             </Link>
           ))}
         </div>

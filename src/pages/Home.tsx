@@ -7,15 +7,14 @@ import { it } from 'date-fns/locale'
 export default function Home() {
   const [clients, setClients] = useState<any[]>([])
   const [subs, setSubs] = useState<any[]>([])
-  const [aperti, setAperti] = useState(0)
+  const [interventi, setInterventi] = useState<any[]>([])
   const [filtro, setFiltro] = useState('scadenza')
+  const [mostraInterventi, setMostraInterventi] = useState(false)
 
   useEffect(() => {
     supabase.from('clients').select('id, name, phone').then(({ data }) => setClients(data || []))
     supabase.from('subscriptions').select('*').then(({ data }) => setSubs(data || []))
-    supabase.from('interventions').select('id, invoice_id, payment_type').then(({ data }) => {
-      setAperti((data || []).filter(i => !i.invoice_id && i.payment_type !== 'garanzia').length)
-    })
+    supabase.from('interventions').select('*, clients(name)').order('created_at', { ascending: false }).then(({ data }) => setInterventi(data || []))
   }, [])
 
   const byClient = Object.fromEntries(clients.map(c => [c.id, c]))
@@ -36,6 +35,13 @@ export default function Home() {
   const scaduti = conAbb.filter(s => gruppo(s) === 'scaduti')
   const lista = filtro === 'attivi' ? attivi : filtro === 'scaduti' ? scaduti : scadenza
 
+  const daFatturare = interventi.filter(i => !i.invoice_id && i.payment_type !== 'garanzia' && i.payment_type !== 'fatturato')
+
+  async function cambiaStato(id: string, stato: string) {
+    await supabase.from('interventions').update({ payment_type: stato }).eq('id', id)
+    setInterventi(prev => prev.map(i => i.id === id ? { ...i, payment_type: stato } : i))
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Panoramica abbonamenti</h1>
@@ -44,11 +50,31 @@ export default function Home() {
           <p className="text-xs text-slate-500">In scadenza questo mese</p>
           <p className="text-2xl font-bold">{scadenza.length}</p>
         </div>
-        <div className="bg-white rounded-xl shadow p-4">
+        <button type="button" onClick={() => setMostraInterventi(!mostraInterventi)} className="bg-white rounded-xl shadow p-4 text-left">
           <p className="text-xs text-slate-500">Interventi da fatturare</p>
-          <p className="text-2xl font-bold">{aperti}</p>
-        </div>
+          <p className="text-2xl font-bold">{daFatturare.length}</p>
+        </button>
       </div>
+      {mostraInterventi ? (
+        <div className="bg-white rounded-xl shadow divide-y">
+          <p className="p-3 font-semibold text-sm">Interventi da fatturare</p>
+          {daFatturare.length === 0 ? <p className="p-4 text-sm text-slate-500">Nessuno</p> : null}
+          {daFatturare.map(i => (
+            <div key={i.id} className="px-4 py-3 space-y-1">
+              <p className="font-medium">{format(parseISO(i.intervention_date), 'dd/MM/yyyy')} · {i.clients?.name || 'Cliente'}</p>
+              <p className="text-sm text-slate-600">{i.description}</p>
+              <select value={i.payment_type || 'da_fatturare'} onChange={e => cambiaStato(i.id, e.target.value)} className="text-sm border rounded px-2 py-1">
+                <option value="da_fatturare">Da fatturare</option>
+                <option value="pagato">Pagato</option>
+                <option value="pos">Pagato con POS</option>
+                <option value="bonifico">Paga con bonifico</option>
+                <option value="garanzia">In garanzia</option>
+                <option value="fatturato">Fatturato</option>
+              </select>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={() => setFiltro('attivi')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'attivi' ? 'bg-green-600 text-white' : 'bg-white border')}>Attivi ({attivi.length})</button>
         <button type="button" onClick={() => setFiltro('scadenza')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-white border')}>In scadenza ({scadenza.length})</button>
