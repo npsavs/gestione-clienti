@@ -17,7 +17,7 @@ export default function NuovoCliente() {
   const [packageType, setPackageType] = useState('Classic')
   const [plantType, setPlantType] = useState('Ajax')
   const [plantOther, setPlantOther] = useState('')
-  const [sim, setSim] = useState(false)
+  const [sim, setSim] = useState(0)
   const [dataIntervento, setDataIntervento] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [voci, setVoci] = useState([''])
   const [pagamento, setPagamento] = useState('da_fatturare')
@@ -61,7 +61,8 @@ export default function NuovoCliente() {
       start_date: start,
       end_date: endDate,
       package_type: packageType,
-      has_sim_wuarda: sim,
+      has_sim_wuarda: sim > 0,
+      notes: sim > 0 ? ('SIM Wuarda: ' + sim) : null,
       plant_type: plantType,
       plant_type_other: plantType === 'Altro' ? plantOther : null,
     })
@@ -123,7 +124,8 @@ export default function NuovoCliente() {
                 <option>Ajax</option><option>Ademco</option><option>Altro</option>
               </select>
               {plantType === 'Altro' ? <input value={plantOther} onChange={e => setPlantOther(e.target.value)} placeholder="Tipo impianto" className="w-full border rounded-lg px-3 py-2" /> : null}
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={sim} onChange={e => setSim(e.target.checked)} /> SIM Wuarda</label>
+              <label className="text-sm">Numero SIM Wuarda</label>
+              <input type="number" min="0" value={sim} onChange={e => setSim(Number(e.target.value))} className="w-full border rounded-lg px-3 py-2" />
               <button type="button" disabled={busy} onClick={salvaAbbonamento} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Salva abbonamento</button>
             </>
           ) : (

@@ -221,7 +221,7 @@ export default function ClientDetail() {
           <div className="space-y-2 text-sm">
             <p><strong>Tipo:</strong> {subscription.package_type || '-'}</p>
             <p><strong>Scadenza:</strong> {format(parseISO(subscription.end_date), 'dd MMMM yyyy', { locale: it })}</p>
-            <p><strong>SIM Wuarda:</strong> {subscription.has_sim_wuarda ? 'Si' : 'No'}</p>
+            <p><strong>SIM Wuarda:</strong> {(subscription as any).notes?.match(/SIM Wuarda: (\d+)/)?.[1] || (subscription.has_sim_wuarda ? 'Si' : 'No')}</p>
             <p><strong>Impianto:</strong> {subscription.plant_type}{subscription.plant_type === 'Altro' && subscription.plant_type_other ? ' (' + subscription.plant_type_other + ')' : ''}</p>
             <button type="button" onClick={handleRenew} className="bg-green-600 text-white px-4 py-2 rounded-lg mt-2">Rinnova di 1 anno</button>
           </div>

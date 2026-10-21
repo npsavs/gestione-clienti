@@ -17,6 +17,7 @@ export default function ModificaCliente() {
     end_date: '',
     package_type: 'Classic',
     has_sim_wuarda: false,
+    sim_count: 0,
     plant_type: 'Ajax',
     plant_type_other: '',
     subscription_id: '',
@@ -39,6 +40,7 @@ export default function ModificaCliente() {
         end_date: sub?.end_date || format(new Date(), 'yyyy-MM-dd'),
         package_type: (sub as any)?.package_type || 'Classic',
         has_sim_wuarda: (sub as any)?.has_sim_wuarda || false,
+        sim_count: Number(((sub as any)?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0),
         plant_type: (sub as any)?.plant_type || 'Ajax',
         plant_type_other: (sub as any)?.plant_type_other || '',
         subscription_id: sub?.id || '',
@@ -72,7 +74,8 @@ export default function ModificaCliente() {
       end_date: form.end_date,
       start_date: startDate,
       package_type: form.package_type,
-      has_sim_wuarda: form.has_sim_wuarda,
+      has_sim_wuarda: form.sim_count > 0,
+      notes: form.sim_count > 0 ? ('SIM Wuarda: ' + form.sim_count) : null,
       plant_type: form.plant_type,
       plant_type_other: form.plant_type === 'Altro' ? form.plant_type_other : null,
     }
@@ -124,9 +127,9 @@ export default function ModificaCliente() {
             <option value="Nuovo Impianto">Nuovo Impianto</option>
           </select>
         </div>
-        <div className="flex items-center gap-2">
-          <input name="has_sim_wuarda" type="checkbox" checked={form.has_sim_wuarda} onChange={handleChange} id="sim" />
-          <label htmlFor="sim">SIM Wuarda</label>
+        <div>
+          <label className="block text-sm font-medium mb-1">Numero SIM Wuarda</label>
+          <input name="sim_count" type="number" min="0" value={form.sim_count} onChange={e => setForm(f => ({ ...f, sim_count: Number(e.target.value) }))} className="w-full border rounded-lg px-3 py-2" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Tipo Impianto</label>
