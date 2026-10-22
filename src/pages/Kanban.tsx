@@ -9,33 +9,19 @@ type ClientWithSub = Client & { subscription?: Subscription }
 
 export default function Kanban() {
   const [clients, setClients] = useState<ClientWithSub[]>([])
-  const [conIntervento, setConIntervento] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    loadClients()
-    const t = setInterval(loadClients, 10000)
-    function onVis() { if (document.visibilityState === 'visible') loadClients() }
-    document.addEventListener('visibilitychange', onVis)
-    window.addEventListener('focus', loadClients)
-    return () => {
-      clearInterval(t)
-      document.removeEventListener('visibilitychange', onVis)
-      window.removeEventListener('focus', loadClients)
-    }
-  }, [])
+  useEffect(() => { loadClients() }, [])
 
   async function loadClients() {
     setLoading(true)
     const { data: clientsData } = await supabase.from('clients').select('*').order('name')
     const { data: subsData } = await supabase.from('subscriptions').select('*').order('created_at', { ascending: false })
-    const { data: inter } = await supabase.from('interventions').select('client_id')
-    setConIntervento(Array.from(new Set((inter || []).map(i => i.client_id))))
     const subMap: Record<string, any> = {}
     for (const s of subsData || []) {
       if (!subMap[s.client_id]) subMap[s.client_id] = s
     }
-    setClients((clientsData || []).map(client => ({ ...client, subscription: subMap[client.id] })))
+    setClients((clientsData || []).map(client => ({ ...client, subscription: subMap[client.id] })).filter(c => c.subscription))
     setLoading(false)
   }
 
@@ -53,51 +39,39 @@ export default function Kanban() {
   const attivi = clients.filter(c => getColumn(c.subscription) === 'attivi')
   const inScadenza = clients.filter(c => getColumn(c.subscription) === 'scadenza')
   const scaduti = clients.filter(c => getColumn(c.subscription) === 'scaduti')
-  const senza = clients.filter(c => !c.subscription && conIntervento.includes(c.id))
 
   if (loading) return <div className="text-center py-10">Caricamento...</div>
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
-        <h1 className="text-2xl font-bold">Kanban Abbonamenti</h1>
-        <div className="flex gap-3">
-          <button type="button" onClick={loadClients} className="text-sm border px-3 py-1 rounded-lg">Aggiorna</button>
-          <Link to="/" className="text-blue-600 hover:underline text-sm">Vista Lista</Link>
-          <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">+ Nuovo</Link>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center flex-wrap gap-2">
+        <h1 className="text-2xl font-bold">Kanban</h1>
+        <div className="flex gap-2">
+          <button type="button" onClick={loadClients} className="text-sm border px-3 py-1.5 rounded-lg bg-white">Aggiorna</button>
+          <Link to="/" className="text-sm border px-3 py-1.5 rounded-lg bg-white">Lista</Link>
+          <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm">+ Nuovo</Link>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-green-50 rounded-xl p-4">
-          <h2 className="font-semibold text-green-800 mb-4 flex items-center justify-between"><span>Attivi</span><span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full">{attivi.length}</span></h2>
-          <div className="space-y-3">
-            {attivi.map(client => <ClientCard key={client.id} client={client} />)}
-            {attivi.length === 0 ? <p className="text-sm text-center py-4">Nessun cliente</p> : null}
-          </div>
-        </div>
-        <div className="bg-yellow-50 rounded-xl p-4">
-          <h2 className="font-semibold text-yellow-800 mb-4 flex items-center justify-between"><span>In scadenza</span><span className="bg-yellow-200 text-yellow-800 text-xs px-2 py-1 rounded-full">{inScadenza.length}</span></h2>
-          <div className="space-y-3">
-            {inScadenza.map(client => <ClientCard key={client.id} client={client} />)}
-            {inScadenza.length === 0 ? <p className="text-sm text-center py-4">Nessun cliente</p> : null}
-          </div>
-        </div>
-        <div className="bg-red-50 rounded-xl p-4">
-          <h2 className="font-semibold text-red-800 mb-4 flex items-center justify-between"><span>Scaduti</span><span className="bg-red-200 text-red-800 text-xs px-2 py-1 rounded-full">{scaduti.length}</span></h2>
-          <div className="space-y-3">
-            {scaduti.map(client => <ClientCard key={client.id} client={client} />)}
-            {scaduti.length === 0 ? <p className="text-sm text-center py-4">Nessun cliente</p> : null}
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Colonna titolo="Attivi" colore="green" n={attivi.length} clienti={attivi} />
+        <Colonna titolo="In scadenza" colore="yellow" n={inScadenza.length} clienti={inScadenza} />
+        <Colonna titolo="Scaduti" colore="red" n={scaduti.length} clienti={scaduti} />
       </div>
-      {senza.length > 0 ? (
-        <div className="mt-8 bg-gray-50 rounded-xl p-4">
-          <h2 className="font-semibold text-gray-700 mb-4">Senza abbonamento, con intervento ({senza.length})</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            {senza.map(client => <ClientCard key={client.id} client={client} />)}
-          </div>
-        </div>
-      ) : null}
+    </div>
+  )
+}
+
+function Colonna({ titolo, colore, n, clienti }: { titolo: string; colore: string; n: number; clienti: ClientWithSub[] }) {
+  const bg = colore === 'green' ? 'bg-green-50' : colore === 'yellow' ? 'bg-yellow-50' : 'bg-red-50'
+  const text = colore === 'green' ? 'text-green-800' : colore === 'yellow' ? 'text-yellow-800' : 'text-red-800'
+  const badge = colore === 'green' ? 'bg-green-200' : colore === 'yellow' ? 'bg-yellow-200' : 'bg-red-200'
+  return (
+    <div className={bg + ' rounded-xl p-4'}>
+      <h2 className={'font-semibold mb-3 flex justify-between ' + text}><span>{titolo}</span><span className={badge + ' text-xs px-2 py-0.5 rounded-full'}>{n}</span></h2>
+      <div className="space-y-2">
+        {clienti.map(client => <ClientCard key={client.id} client={client} />)}
+        {clienti.length === 0 ? <p className="text-sm text-center py-4 text-slate-400">Nessuno</p> : null}
+      </div>
     </div>
   )
 }
