@@ -9,6 +9,7 @@ export default function NuovoCliente() {
   const [clients, setClients] = useState<any[]>([])
   const [q, setQ] = useState('')
   const [clientId, setClientId] = useState('')
+  const [nuovo, setNuovo] = useState(false)
   const [fittizio, setFittizio] = useState(false)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
