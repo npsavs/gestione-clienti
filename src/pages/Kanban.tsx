@@ -14,9 +14,15 @@ export default function Kanban() {
 
   useEffect(() => {
     loadClients()
+    const t = setInterval(loadClients, 10000)
     function onVis() { if (document.visibilityState === 'visible') loadClients() }
     document.addEventListener('visibilitychange', onVis)
-    return () => document.removeEventListener('visibilitychange', onVis)
+    window.addEventListener('focus', loadClients)
+    return () => {
+      clearInterval(t)
+      document.removeEventListener('visibilitychange', onVis)
+      window.removeEventListener('focus', loadClients)
+    }
   }, [])
 
   async function loadClients() {
