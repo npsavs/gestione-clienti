@@ -27,9 +27,13 @@ export default function Dashboard() {
       if (cl.length < 1000) break
       start += 1000
     }
-    const { data: subsData } = await supabase.from('subscriptions').select('*')
+    const { data: subsData } = await supabase.from('subscriptions').select('*').order('created_at', { ascending: false })
+    const subMap: Record<string, any> = {}
+    for (const s of subsData || []) {
+      if (!subMap[s.client_id]) subMap[s.client_id] = s
+    }
     setClients(tutti
-      .map(client => ({ ...client, subscription: (subsData || []).find(s => s.client_id === client.id) }))
+      .map(client => ({ ...client, subscription: subMap[client.id] }))
       .filter(c => c.subscription && (c as any).kind !== 'fittizio'))
     setLoading(false)
   }

@@ -28,10 +28,14 @@ export default function Kanban() {
   async function loadClients() {
     setLoading(true)
     const { data: clientsData } = await supabase.from('clients').select('*').order('name')
-    const { data: subsData } = await supabase.from('subscriptions').select('*')
+    const { data: subsData } = await supabase.from('subscriptions').select('*').order('created_at', { ascending: false })
     const { data: inter } = await supabase.from('interventions').select('client_id')
     setConIntervento(Array.from(new Set((inter || []).map(i => i.client_id))))
-    setClients((clientsData || []).map(client => ({ ...client, subscription: (subsData || []).find(s => s.client_id === client.id) })))
+    const subMap: Record<string, any> = {}
+    for (const s of subsData || []) {
+      if (!subMap[s.client_id]) subMap[s.client_id] = s
+    }
+    setClients((clientsData || []).map(client => ({ ...client, subscription: subMap[client.id] })))
     setLoading(false)
   }
 
