@@ -15,13 +15,21 @@ export default function Kanban() {
 
   async function loadClients() {
     setLoading(true)
-    const { data: clientsData } = await supabase.from('clients').select('*').order('name')
+    const tutti: any[] = []
+    let start = 0
+    while (true) {
+      const { data: cl } = await supabase.from('clients').select('*').order('name').range(start, start + 999)
+      if (!cl || cl.length === 0) break
+      tutti.push(...cl)
+      if (cl.length < 1000) break
+      start += 1000
+    }
     const { data: subsData } = await supabase.from('subscriptions').select('*').order('created_at', { ascending: false })
     const subMap: Record<string, any> = {}
     for (const s of subsData || []) {
       if (!subMap[s.client_id]) subMap[s.client_id] = s
     }
-    setClients((clientsData || []).map(client => ({ ...client, subscription: subMap[client.id] })).filter(c => c.subscription))
+    setClients(tutti.map(client => ({ ...client, subscription: subMap[client.id] })).filter(c => c.subscription))
     setLoading(false)
   }
 
