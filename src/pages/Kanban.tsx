@@ -12,7 +12,12 @@ export default function Kanban() {
   const [conIntervento, setConIntervento] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadClients() }, [])
+  useEffect(() => {
+    loadClients()
+    function onVis() { if (document.visibilityState === 'visible') loadClients() }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
 
   async function loadClients() {
     setLoading(true)

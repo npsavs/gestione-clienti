@@ -11,7 +11,7 @@ export default function Dashboard() {
   const [clients, setClients] = useState<(Client & { subscription?: Subscription })[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState('scadenza')
+  const [filter, setFilter] = useState('attivi')
   const [pacchetto, setPacchetto] = useState('')
 
   useEffect(() => { loadClients() }, [])
