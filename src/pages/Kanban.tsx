@@ -58,6 +58,7 @@ export default function Kanban() {
       <div className="flex justify-between items-center mb-6 flex-wrap gap-2">
         <h1 className="text-2xl font-bold">Kanban Abbonamenti</h1>
         <div className="flex gap-3">
+          <button type="button" onClick={loadClients} className="text-sm border px-3 py-1 rounded-lg">Aggiorna</button>
           <Link to="/" className="text-blue-600 hover:underline text-sm">Vista Lista</Link>
           <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">+ Nuovo</Link>
         </div>
