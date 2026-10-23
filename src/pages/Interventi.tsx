@@ -129,6 +129,7 @@ export default function Interventi() {
     if (filtro === 'pos') return r.payment_type === 'pos'
     if (filtro === 'bonifico') return r.payment_type === 'bonifico'
     if (filtro === 'da_fatturare') return !r.invoice_id && r.payment_type !== 'garanzia' && r.payment_type !== 'fatturato'
+    if (filtro === 'fatturato') return r.payment_type === 'fatturato' || r.invoice_id
     return true
   })
 
@@ -149,6 +150,7 @@ export default function Interventi() {
         <button type="button" onClick={() => setFiltro('pagato')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'pagato' ? 'bg-green-600 text-white' : 'border')}>Pagato</button>
         <button type="button" onClick={() => setFiltro('pos')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'pos' ? 'bg-blue-600 text-white' : 'border')}>Pagato con POS</button>
         <button type="button" onClick={() => setFiltro('bonifico')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'bonifico' ? 'bg-purple-600 text-white' : 'border')}>Paga con bonifico</button>
+        <button type="button" onClick={() => setFiltro('fatturato')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'fatturato' ? 'bg-emerald-600 text-white' : 'border')}>Fatturato</button>
       </div>
       {cliente ? (
         <div className="space-y-3">

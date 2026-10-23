@@ -12,9 +12,23 @@ export default function Home() {
   const [mostraInterventi, setMostraInterventi] = useState(false)
 
   useEffect(() => {
-    supabase.from('clients').select('id, name, phone').then(({ data }) => setClients(data || []))
-    supabase.from('subscriptions').select('*').then(({ data }) => setSubs(data || []))
-    supabase.from('interventions').select('*, clients(name)').order('created_at', { ascending: false }).then(({ data }) => setInterventi(data || []))
+    async function carica() {
+      const tutti: any[] = []
+      let start = 0
+      while (true) {
+        const { data } = await supabase.from('clients').select('id, name, phone').order('name').range(start, start + 999)
+        if (!data || data.length === 0) break
+        tutti.push(...data)
+        if (data.length < 1000) break
+        start += 1000
+      }
+      setClients(tutti)
+      const { data: s } = await supabase.from('subscriptions').select('*')
+      setSubs(s || [])
+      const { data: i } = await supabase.from('interventions').select('*, clients(name)').order('created_at', { ascending: false })
+      setInterventi(i || [])
+    }
+    carica()
   }, [])
 
   const byClient = Object.fromEntries(clients.map(c => [c.id, c]))
