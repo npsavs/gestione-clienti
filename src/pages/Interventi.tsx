@@ -129,7 +129,17 @@ export default function Interventi() {
     if (filtro === 'pos') return r.payment_type === 'pos'
     if (filtro === 'bonifico') return r.payment_type === 'bonifico'
     if (filtro === 'da_fatturare') return !r.invoice_id && r.payment_type !== 'garanzia' && r.payment_type !== 'fatturato'
-    if (filtro === 'fatturato') return r.payment_type === 'fatturato' || r.invoice_id
+    if (filtro === 'fatturato') return r.payment_type === 'fatturato' || !!r.invoice_id
+    if (filtro === 'garanzia') return r.payment_type === 'garanzia'
+    return true
+  })
+  const ultimiFiltrati = ultimi.filter(r => {
+    if (filtro === 'pagato') return r.payment_type === 'pagato'
+    if (filtro === 'pos') return r.payment_type === 'pos'
+    if (filtro === 'bonifico') return r.payment_type === 'bonifico'
+    if (filtro === 'da_fatturare') return !r.invoice_id && r.payment_type !== 'garanzia' && r.payment_type !== 'fatturato'
+    if (filtro === 'fatturato') return r.payment_type === 'fatturato' || !!r.invoice_id
+    if (filtro === 'garanzia') return r.payment_type === 'garanzia'
     return true
   })
 
@@ -198,7 +208,7 @@ export default function Interventi() {
       ) : (
         <div className="space-y-2">
           <p className="text-sm text-slate-500">Ultimi 10 interventi</p>
-          {ultimi.map(item => (
+          {ultimiFiltrati.map(item => (
             <Link key={item.id} to={'/client/' + item.client_id} className="block bg-white rounded-xl shadow p-4 space-y-1 hover:bg-slate-50">
               <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')} · {item.clients?.name || 'Cliente'}</p>
               <p className="text-sm text-slate-600">{item.description}</p>
