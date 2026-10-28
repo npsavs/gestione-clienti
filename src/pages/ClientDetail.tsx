@@ -41,6 +41,8 @@ export default function ClientDetail() {
     payment_type: 'da_fatturare',
   })
   const [savingIntervention, setSavingIntervention] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'da_fatturare' })
   const [descrizioni, setDescrizioni] = useState([''])
 
   function aggiungiDesc() {
@@ -52,9 +54,7 @@ export default function ClientDetail() {
   function togliDesc(i: number) {
     setDescrizioni(prev => prev.filter((_, idx) => idx !== i))
   }
-  const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'da_fatturare' })
 
-  
   const [newSub, setNewSub] = useState({
     package_type: 'Classic',
     end_date: format(addYears(new Date(), 1), 'yyyy-MM-dd'),
