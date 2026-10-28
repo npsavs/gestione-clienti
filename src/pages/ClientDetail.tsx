@@ -222,6 +222,12 @@ export default function ClientDetail() {
   if (loading) return <div className="text-center py-10">Caricamento...</div>
   if (!client) return <div className="text-center py-10">Cliente non trovato</div>
   const status = getStatus(subscription)
+  const gruppi = interventions.reduce((acc: Record<string, any[]>, item) => {
+    const k = item.intervention_date
+    if (!acc[k]) acc[k] = []
+    acc[k].push(item)
+    return acc
+  }, {})
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -298,12 +304,6 @@ export default function ClientDetail() {
         </form>
         {interventions.length === 0 ? <p className="text-gray-500">Nessun intervento registrato</p> : (
           <div className="space-y-3">
-            const gruppi = interventions.reduce((acc: Record<string, any[]>, item) => {
-          const k = item.intervention_date
-          if (!acc[k]) acc[k] = []
-          acc[k].push(item)
-          return acc
-        }, {})
         {Object.entries(gruppi).map(([data, items]) => (
           <div key={data} className="border rounded-lg p-3 space-y-2">
             <p className="font-medium text-sm">{format(parseISO(data), 'dd MMMM yyyy', { locale: it })}</p>
