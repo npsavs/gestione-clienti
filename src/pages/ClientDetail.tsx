@@ -21,6 +21,12 @@ async function prossimoNumeroFattura() {
 function etichettaPagamento(v?: string) {
   if (v === 'garanzia') return 'In garanzia'
   if (v === 'da_fatturare') return 'Da fatturare'
+  if (v === 'fatturato') return 'Fatturato'
+  if (v === 'pagato') return 'Pagato'
+  if (v === 'pos') return 'Pagato con POS'
+  if (v === 'bonifico') return 'Paga con bonifico'
+  return v || '-'
+}
   if (v === 'pos') return 'Pagato con POS'
   if (v === 'bonifico') return 'Paga con bonifico'
   return 'Pagato'
@@ -292,8 +298,17 @@ export default function ClientDetail() {
         </form>
         {interventions.length === 0 ? <p className="text-gray-500">Nessun intervento registrato</p> : (
           <div className="space-y-3">
-            {interventions.map(item => (
-              <div key={item.id} className="border rounded-lg p-3 space-y-2">
+            const gruppi = interventions.reduce((acc: Record<string, any[]>, item) => {
+          const k = item.intervention_date
+          if (!acc[k]) acc[k] = []
+          acc[k].push(item)
+          return acc
+        }, {})
+        {Object.entries(gruppi).map(([data, items]) => (
+          <div key={data} className="border rounded-lg p-3 space-y-2">
+            <p className="font-medium text-sm">{format(parseISO(data), 'dd MMMM yyyy', { locale: it })}</p>
+            {items.map(item => (
+              <div key={item.id} className="border-t pt-2 space-y-1">
                 {editingId === item.id ? (
                   <div className="space-y-2">
                     <input type="date" value={editForm.intervention_date} onChange={e => setEditForm(f => ({ ...f, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
@@ -319,12 +334,11 @@ export default function ClientDetail() {
                   </div>
                 ) : (
                   <>
-                    {(item as any).payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : (item as any).invoice_id || (item as any).payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {(item as any).invoice_number}</p> : (
+                    {(item as any).payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia</p> : (item as any).invoice_id || (item as any).payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {(item as any).invoice_number}</p> : (
                       <label className="text-sm flex gap-2"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleIntervention(item.id)} /> Da fatturare</label>
                     )}
-                    <p className="text-sm text-gray-500">{format(parseISO(item.intervention_date), 'dd MMMM yyyy', { locale: it })}</p>
                     <p className="text-gray-800 break-words">{item.description}</p>
-                    <p className="text-sm">{Number((item as any).amount || 0).toFixed(2)} EUR · {etichettaPagamento((item as any).payment_type)}</p>
+                    <p className="text-sm text-slate-500">{Number((item as any).amount || 0).toFixed(2)} EUR · {etichettaPagamento((item as any).payment_type)} {(item as any).metodo ? '· ' + etichettaPagamento((item as any).metodo) : ''}</p>
                     <div className="flex gap-2 pt-1">
                       <button type="button" onClick={() => iniziaModifica(item)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">Modifica</button>
                       <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-sm text-red-600 border border-red-300 px-3 py-1 rounded">Elimina</button>
@@ -334,6 +348,7 @@ export default function ClientDetail() {
               </div>
             ))}
           </div>
+        ))}
         )}
       </div>
     </div>
