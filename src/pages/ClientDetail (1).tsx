@@ -41,7 +41,17 @@ export default function ClientDetail() {
     payment_type: 'da_fatturare',
   })
   const [savingIntervention, setSavingIntervention] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [descrizioni, setDescrizioni] = useState([''])
+
+  function aggiungiDesc() {
+    setDescrizioni(prev => [...prev, ''])
+  }
+  function cambiaDesc(i: number, v: string) {
+    setDescrizioni(prev => prev.map((d, idx) => idx === i ? v : d))
+  }
+  function togliDesc(i: number) {
+    setDescrizioni(prev => prev.filter((_, idx) => idx !== i))
+  }
   const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'da_fatturare' })
 
   
@@ -140,17 +150,20 @@ export default function ClientDetail() {
 
   async function handleAddIntervention(e: React.FormEvent) {
     e.preventDefault()
-    if (!newIntervention.description.trim()) return
+    const valide = descrizioni.filter(d => d.trim())
+    if (valide.length === 0) return
     setSavingIntervention(true)
-    const { error } = await supabase.from('interventions').insert({
-      client_id: id,
-      intervention_date: newIntervention.intervention_date,
-      description: newIntervention.description,
-      payment_type: newIntervention.payment_type,
-      amount: newIntervention.payment_type === 'garanzia' ? 0 : Number(newIntervention.amount || 0),
-    })
+    for (const desc of valide) {
+      await supabase.from('interventions').insert({
+        client_id: id,
+        intervention_date: newIntervention.intervention_date,
+        description: desc.trim(),
+        amount: newIntervention.payment_type === 'garanzia' ? 0 : Number(newIntervention.amount || 0),
+        payment_type: newIntervention.payment_type,
+      })
+    }
     setSavingIntervention(false)
-    if (error) return alert(error.message)
+    setDescrizioni([''])
     setNewIntervention({ intervention_date: format(new Date(), 'yyyy-MM-dd'), description: '', amount: '', payment_type: 'da_fatturare' })
     loadData()
   }
@@ -250,7 +263,13 @@ export default function ClientDetail() {
         </div>
         <form onSubmit={handleAddIntervention} className="mb-6 space-y-3 border-b pb-6">
           <input type="date" value={newIntervention.intervention_date} onChange={e => setNewIntervention(prev => ({ ...prev, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
-          <input type="text" placeholder="Descrizione intervento..." value={newIntervention.description} onChange={e => setNewIntervention(prev => ({ ...prev, description: e.target.value }))} className="w-full border rounded-lg px-3 py-2" required />
+          {descrizioni.map((d, i) => (
+            <div key={i} className="flex gap-2">
+              <input type="text" placeholder={'Descrizione ' + (i + 1)} value={d} onChange={e => cambiaDesc(i, e.target.value)} className="flex-1 border rounded-lg px-3 py-2" />
+              {descrizioni.length > 1 ? <button type="button" onClick={() => togliDesc(i)} className="text-red-500 text-sm">×</button> : null}
+            </div>
+          ))}
+          <button type="button" onClick={aggiungiDesc} className="text-sm text-blue-600">+ Aggiungi un intervento lo stesso giorno</button>
           <select value={newIntervention.payment_type} onChange={e => setNewIntervention(prev => ({ ...prev, payment_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
             <option value="da_fatturare">Da fatturare</option>
             <option value="garanzia">In garanzia</option>
