@@ -27,10 +27,6 @@ function etichettaPagamento(v?: string) {
   if (v === 'bonifico') return 'Paga con bonifico'
   return v || '-'
 }
-  if (v === 'pos') return 'Pagato con POS'
-  if (v === 'bonifico') return 'Paga con bonifico'
-  return 'Pagato'
-}
 
 export default function ClientDetail() {
   const { id } = useParams()
@@ -51,17 +47,6 @@ export default function ClientDetail() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'da_fatturare', metodo: '' })
   const [descrizioni, setDescrizioni] = useState([''])
-
-  function aggiungiDesc() {
-    setDescrizioni(prev => [...prev, ''])
-  }
-  function cambiaDesc(i: number, v: string) {
-    setDescrizioni(prev => prev.map((d, idx) => idx === i ? v : d))
-  }
-  function togliDesc(i: number) {
-    setDescrizioni(prev => prev.filter((_, idx) => idx !== i))
-  }
-
   const [newSub, setNewSub] = useState({
     package_type: 'Classic',
     end_date: format(addYears(new Date(), 1), 'yyyy-MM-dd'),
@@ -154,6 +139,10 @@ export default function ClientDetail() {
     if (error) return alert(error.message)
     loadData()
   }
+
+  function aggiungiDesc() { setDescrizioni(prev => [...prev, '']) }
+  function cambiaDesc(i: number, v: string) { setDescrizioni(prev => prev.map((d, idx) => idx === i ? v : d)) }
+  function togliDesc(i: number) { setDescrizioni(prev => prev.filter((_, idx) => idx !== i)) }
 
   async function handleAddIntervention(e: React.FormEvent) {
     e.preventDefault()
@@ -258,7 +247,7 @@ export default function ClientDetail() {
           <form onSubmit={handleAddSub} className="space-y-3">
             <p className="text-gray-500 text-sm">Nessun abbonamento. Aggiungilo qui.</p>
             <select value={newSub.package_type} onChange={e => setNewSub(s => ({ ...s, package_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
-              <option>Classic</option><option>Premium</option><option>Medium</option><option>Basic</option><option>Nuovo Impianto</option>
+              <option>Classic</option><option>Premium</option><option>Premium Plus</option><option>Medium</option><option>Basic</option><option>Nuovo Impianto</option>
             </select>
             <select value={newSub.plant_type} onChange={e => setNewSub(s => ({ ...s, plant_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
               <option>Ajax</option><option>Ademco</option><option>Altro</option>
@@ -304,51 +293,52 @@ export default function ClientDetail() {
         </form>
         {interventions.length === 0 ? <p className="text-gray-500">Nessun intervento registrato</p> : (
           <div className="space-y-3">
-        {Object.entries(gruppi).map(([data, items]) => (
-          <div key={data} className="border rounded-lg p-3 space-y-2">
-            <p className="font-medium text-sm">{format(parseISO(data), 'dd MMMM yyyy', { locale: it })}</p>
-            {items.map(item => (
-              <div key={item.id} className="border-t pt-2 space-y-1">
-                {editingId === item.id ? (
-                  <div className="space-y-2">
-                    <input type="date" value={editForm.intervention_date} onChange={e => setEditForm(f => ({ ...f, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
-                    <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
-                    <select value={editForm.payment_type} onChange={e => setEditForm(f => ({ ...f, payment_type: e.target.value, metodo: e.target.value === 'garanzia' ? '' : f.metodo }))} className="w-full border rounded-lg px-3 py-2">
-                      <option value="da_fatturare">Da fatturare</option>
-                      <option value="garanzia">In garanzia</option>
-                      <option value="fatturato">Fatturato</option>
-                    </select>
-                    {editForm.payment_type !== 'garanzia' ? (
-                      <select value={editForm.metodo} onChange={e => setEditForm(f => ({ ...f, metodo: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
-                        <option value="">Metodo pagamento</option>
-                        <option value="pagato">Pagato</option>
-                        <option value="pos">Pagato con POS</option>
-                        <option value="bonifico">Paga con bonifico</option>
-                      </select>
-                    ) : <p className="text-xs text-slate-500">In garanzia non si fattura</p>}
-                    <input type="number" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} placeholder="Importo" className="w-full border rounded-lg px-3 py-2" />
-                    <div className="flex gap-2">
-                      <button type="button" onClick={salvaModifica} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Salva</button>
-                      <button type="button" onClick={() => setEditingId(null)} className="border px-3 py-1 rounded text-sm">Annulla</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {(item as any).payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia</p> : (item as any).invoice_id || (item as any).payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {(item as any).invoice_number}</p> : (
-                      <label className="text-sm flex gap-2"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleIntervention(item.id)} /> Da fatturare</label>
+            {Object.entries(gruppi).map(([data, items]) => (
+              <div key={data} className="border rounded-lg p-3 space-y-2">
+                <p className="font-medium text-sm">{format(parseISO(data), 'dd MMMM yyyy', { locale: it })}</p>
+                {items.map(item => (
+                  <div key={item.id} className="border-t pt-2 space-y-1">
+                    {editingId === item.id ? (
+                      <div className="space-y-2">
+                        <input type="date" value={editForm.intervention_date} onChange={e => setEditForm(f => ({ ...f, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
+                        <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
+                        <select value={editForm.payment_type} onChange={e => setEditForm(f => ({ ...f, payment_type: e.target.value, metodo: e.target.value === 'garanzia' ? '' : f.metodo }))} className="w-full border rounded-lg px-3 py-2">
+                          <option value="da_fatturare">Da fatturare</option>
+                          <option value="garanzia">In garanzia</option>
+                          <option value="fatturato">Fatturato</option>
+                        </select>
+                        {editForm.payment_type !== 'garanzia' ? (
+                          <select value={editForm.metodo} onChange={e => setEditForm(f => ({ ...f, metodo: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+                            <option value="">Metodo pagamento</option>
+                            <option value="pagato">Pagato</option>
+                            <option value="pos">Pagato con POS</option>
+                            <option value="bonifico">Paga con bonifico</option>
+                          </select>
+                        ) : <p className="text-xs text-slate-500">In garanzia non si fattura</p>}
+                        <input type="number" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} placeholder="Importo" className="w-full border rounded-lg px-3 py-2" />
+                        <div className="flex gap-2">
+                          <button type="button" onClick={salvaModifica} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Salva</button>
+                          <button type="button" onClick={() => setEditingId(null)} className="border px-3 py-1 rounded text-sm">Annulla</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {(item as any).payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia</p> : (item as any).invoice_id || (item as any).payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {(item as any).invoice_number}</p> : (
+                          <label className="text-sm flex gap-2"><input type="checkbox" checked={selectedIds.includes(item.id)} onChange={() => toggleIntervention(item.id)} /> Da fatturare</label>
+                        )}
+                        <p className="text-gray-800 break-words">{item.description}</p>
+                        <p className="text-sm text-slate-500">{Number((item as any).amount || 0).toFixed(2)} EUR · {etichettaPagamento((item as any).payment_type)} {(item as any).metodo ? '· ' + etichettaPagamento((item as any).metodo) : ''}</p>
+                        <div className="flex gap-2 pt-1">
+                          <button type="button" onClick={() => iniziaModifica(item)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">Modifica</button>
+                          <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-sm text-red-600 border border-red-300 px-3 py-1 rounded">Elimina</button>
+                        </div>
+                      </>
                     )}
-                    <p className="text-gray-800 break-words">{item.description}</p>
-                    <p className="text-sm text-slate-500">{Number((item as any).amount || 0).toFixed(2)} EUR · {etichettaPagamento((item as any).payment_type)} {(item as any).metodo ? '· ' + etichettaPagamento((item as any).metodo) : ''}</p>
-                    <div className="flex gap-2 pt-1">
-                      <button type="button" onClick={() => iniziaModifica(item)} className="text-sm bg-blue-600 text-white px-3 py-1 rounded">Modifica</button>
-                      <button type="button" onClick={() => handleDeleteIntervention(item.id)} className="text-sm text-red-600 border border-red-300 px-3 py-1 rounded">Elimina</button>
-                    </div>
-                  </>
-                )}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
-        ))}
         )}
       </div>
     </div>
