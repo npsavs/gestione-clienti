@@ -124,7 +124,7 @@ export default function Interventi() {
     caricaUltimi()
   }
 
-  const visibili = rows.filter(r => {
+  function filtra(r: any) {
     if (filtro === 'pagato') return r.payment_type === 'pagato'
     if (filtro === 'pos') return r.payment_type === 'pos'
     if (filtro === 'bonifico') return r.payment_type === 'bonifico'
@@ -132,7 +132,8 @@ export default function Interventi() {
     if (filtro === 'fatturato') return r.payment_type === 'fatturato' || !!r.invoice_id
     if (filtro === 'garanzia') return r.payment_type === 'garanzia'
     return true
-  })
+  }
+
   function raggruppa(lista: any[]) {
     const g: Record<string, any[]> = {}
     for (const r of lista) {
@@ -142,16 +143,11 @@ export default function Interventi() {
     }
     return Object.values(g)
   }
+
+  const visibili = rows.filter(filtra)
+  const ultimiFiltrati = ultimi.filter(filtra)
   const gruppiCliente = raggruppa(visibili)
   const gruppiUltimi = raggruppa(ultimiFiltrati)
-    if (filtro === 'pagato') return r.payment_type === 'pagato'
-    if (filtro === 'pos') return r.payment_type === 'pos'
-    if (filtro === 'bonifico') return r.payment_type === 'bonifico'
-    if (filtro === 'da_fatturare') return !r.invoice_id && r.payment_type !== 'garanzia' && r.payment_type !== 'fatturato'
-    if (filtro === 'fatturato') return r.payment_type === 'fatturato' || !!r.invoice_id
-    if (filtro === 'garanzia') return r.payment_type === 'garanzia'
-    return true
-  })
 
   return (
     <div className="space-y-4">
@@ -180,7 +176,7 @@ export default function Interventi() {
           </button>
           {gruppiCliente.map(items => (
             <div key={items[0].id} className="bg-white rounded-xl shadow p-4 space-y-2">
-              <p className="font-medium">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {cliente?.name}</p>
+              <p className="font-medium">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {cliente.name}</p>
               {items.map(item => (
                 <div key={item.id} className="border-t pt-2 space-y-1">
                   {editing === item.id ? (
@@ -218,41 +214,6 @@ export default function Interventi() {
               ))}
             </div>
           ))}
-            <div key={item.id} className="bg-white rounded-xl shadow p-4 space-y-1">
-              {editing === item.id ? (
-                <div className="space-y-2">
-                  <input type="date" value={editForm.intervention_date} onChange={e => setEditForm(f => ({ ...f, intervention_date: e.target.value }))} className="w-full border rounded px-2 py-1" />
-                  <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="w-full border rounded px-2 py-1" />
-                  <select value={editForm.payment_type} onChange={e => setEditForm(f => ({ ...f, payment_type: e.target.value }))} className="w-full border rounded px-2 py-1">
-                    <option value="da_fatturare">Da fatturare</option>
-                    <option value="pagato">Pagato</option>
-                    <option value="pos">Pagato con POS</option>
-                    <option value="bonifico">Paga con bonifico</option>
-                    <option value="garanzia">In garanzia</option>
-                    <option value="fatturato">Fatturato</option>
-                  </select>
-                  <input type="number" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} placeholder="Importo" className="w-full border rounded px-2 py-1" />
-                  <div className="flex gap-2">
-                    <button type="button" onClick={salvaEdit} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Salva</button>
-                    <button type="button" onClick={() => setEditing(null)} className="border px-3 py-1 rounded text-sm">Annulla</button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {item.payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia, non si fattura</p> : item.invoice_id || item.payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {item.invoice_number || ''}</p> : (
-                    <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
-                  )}
-                  <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')}</p>
-                  <p className="text-sm text-slate-600 break-words">{item.description}</p>
-                  <p className="text-xs text-slate-500">{item.payment_type || '-'} · {Number(item.amount || 0).toFixed(2)} EUR</p>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => iniziaEdit(item)} className="text-blue-600 text-sm">Modifica</button>
-                    <button type="button" onClick={() => elimina(item.id)} className="text-red-600 text-sm">Elimina</button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
         </div>
       ) : (
         <div className="space-y-2">
@@ -266,12 +227,6 @@ export default function Interventi() {
                   <p className="text-xs text-slate-500">{item.payment_type || '-'}</p>
                 </div>
               ))}
-            </Link>
-          ))}
-            <Link key={item.id} to={'/client/' + item.client_id} className="block bg-white rounded-xl shadow p-4 space-y-1 hover:bg-slate-50">
-              <p className="font-medium">{format(parseISO(item.intervention_date), 'dd/MM/yyyy')} · {item.clients?.name || 'Cliente'}</p>
-              <p className="text-sm text-slate-600">{item.description}</p>
-              <p className="text-xs text-slate-500">{item.payment_type || '-'}</p>
             </Link>
           ))}
         </div>
