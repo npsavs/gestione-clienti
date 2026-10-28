@@ -39,10 +39,11 @@ export default function ClientDetail() {
     description: '',
     amount: '',
     payment_type: 'da_fatturare',
+    metodo: '',
   })
   const [savingIntervention, setSavingIntervention] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'da_fatturare' })
+  const [editForm, setEditForm] = useState({ intervention_date: '', description: '', amount: '', payment_type: 'da_fatturare', metodo: '' })
   const [descrizioni, setDescrizioni] = useState([''])
 
   function aggiungiDesc() {
@@ -160,11 +161,12 @@ export default function ClientDetail() {
         description: desc.trim(),
         amount: newIntervention.payment_type === 'garanzia' ? 0 : Number(newIntervention.amount || 0),
         payment_type: newIntervention.payment_type,
+        metodo: newIntervention.metodo,
       })
     }
     setSavingIntervention(false)
     setDescrizioni([''])
-    setNewIntervention({ intervention_date: format(new Date(), 'yyyy-MM-dd'), description: '', amount: '', payment_type: 'da_fatturare' })
+    setNewIntervention({ intervention_date: format(new Date(), 'yyyy-MM-dd'), description: '', amount: '', payment_type: 'da_fatturare', metodo: '' })
     loadData()
   }
 
@@ -182,6 +184,7 @@ export default function ClientDetail() {
       description: item.description || '',
       amount: String(item.amount || ''),
       payment_type: item.payment_type || 'da_fatturare',
+      metodo: item.metodo || '',
     })
   }
 
@@ -192,6 +195,7 @@ export default function ClientDetail() {
       description: editForm.description,
       amount: editForm.payment_type === 'garanzia' ? 0 : Number(editForm.amount || 0),
       payment_type: editForm.payment_type,
+      metodo: editForm.metodo,
     }).eq('id', editingId)
     if (error) return alert(error.message)
     setEditingId(null)
@@ -270,13 +274,19 @@ export default function ClientDetail() {
             </div>
           ))}
           <button type="button" onClick={aggiungiDesc} className="text-sm text-blue-600">+ Aggiungi un intervento lo stesso giorno</button>
-          <select value={newIntervention.payment_type} onChange={e => setNewIntervention(prev => ({ ...prev, payment_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+          <select value={newIntervention.payment_type} onChange={e => setNewIntervention(prev => ({ ...prev, payment_type: e.target.value, metodo: e.target.value === 'garanzia' ? '' : prev.metodo }))} className="w-full border rounded-lg px-3 py-2">
             <option value="da_fatturare">Da fatturare</option>
             <option value="garanzia">In garanzia</option>
-            <option value="pagato">Pagato</option>
-            <option value="pos">Pagato con POS</option>
-            <option value="bonifico">Paga con bonifico</option>
+            <option value="fatturato">Fatturato</option>
           </select>
+          {newIntervention.payment_type !== 'garanzia' ? (
+            <select value={newIntervention.metodo} onChange={e => setNewIntervention(prev => ({ ...prev, metodo: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+              <option value="">Metodo pagamento</option>
+              <option value="pagato">Pagato</option>
+              <option value="pos">Pagato con POS</option>
+              <option value="bonifico">Paga con bonifico</option>
+            </select>
+          ) : <p className="text-xs text-slate-500">In garanzia non si fattura</p>}
           <input type="number" step="0.01" placeholder="Importo EUR" value={newIntervention.amount} onChange={e => setNewIntervention(prev => ({ ...prev, amount: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
           <button type="submit" disabled={savingIntervention} className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-50">Aggiungi</button>
         </form>
@@ -288,14 +298,19 @@ export default function ClientDetail() {
                   <div className="space-y-2">
                     <input type="date" value={editForm.intervention_date} onChange={e => setEditForm(f => ({ ...f, intervention_date: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
                     <input value={editForm.description} onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))} className="w-full border rounded-lg px-3 py-2" />
-                    <select value={editForm.payment_type} onChange={e => setEditForm(f => ({ ...f, payment_type: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+                    <select value={editForm.payment_type} onChange={e => setEditForm(f => ({ ...f, payment_type: e.target.value, metodo: e.target.value === 'garanzia' ? '' : f.metodo }))} className="w-full border rounded-lg px-3 py-2">
                       <option value="da_fatturare">Da fatturare</option>
                       <option value="garanzia">In garanzia</option>
-                      <option value="pagato">Pagato</option>
-                      <option value="pos">Pagato con POS</option>
-                      <option value="bonifico">Paga con bonifico</option>
                       <option value="fatturato">Fatturato</option>
                     </select>
+                    {editForm.payment_type !== 'garanzia' ? (
+                      <select value={editForm.metodo} onChange={e => setEditForm(f => ({ ...f, metodo: e.target.value }))} className="w-full border rounded-lg px-3 py-2">
+                        <option value="">Metodo pagamento</option>
+                        <option value="pagato">Pagato</option>
+                        <option value="pos">Pagato con POS</option>
+                        <option value="bonifico">Paga con bonifico</option>
+                      </select>
+                    ) : <p className="text-xs text-slate-500">In garanzia non si fattura</p>}
                     <input type="number" step="0.01" value={editForm.amount} onChange={e => setEditForm(f => ({ ...f, amount: e.target.value }))} placeholder="Importo" className="w-full border rounded-lg px-3 py-2" />
                     <div className="flex gap-2">
                       <button type="button" onClick={salvaModifica} className="bg-blue-600 text-white px-3 py-1 rounded text-sm">Salva</button>
