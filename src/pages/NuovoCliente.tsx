@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { format, subYears } from 'date-fns'
+import { format, addYears, subYears } from 'date-fns'
 
 export default function NuovoCliente() {
   const navigate = useNavigate()
@@ -14,15 +14,16 @@ export default function NuovoCliente() {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
-  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [packageType, setPackageType] = useState('Classic')
   const [plantType, setPlantType] = useState('Ajax')
   const [plantOther, setPlantOther] = useState('')
+  const [endDate, setEndDate] = useState(format(addYears(new Date(), 1), 'yyyy-MM-dd'))
   const [sim, setSim] = useState(0)
   const [dataIntervento, setDataIntervento] = useState(format(new Date(), 'yyyy-MM-dd'))
-  const [voci, setVoci] = useState([''])
   const [pagamento, setPagamento] = useState('da_fatturare')
   const [importo, setImporto] = useState('')
+  const [voci, setVoci] = useState([''])
+  const [busy, setBusy] = useState(false)
   const [haAbbonamento, setHaAbbonamento] = useState(false)
 
   async function scegliCliente(id: string) {
@@ -71,6 +72,7 @@ export default function NuovoCliente() {
   }
 
   async function salvaAbbonamento() {
+    if (haAbbonamento) return alert('Abbonamento già presente')
     setBusy(true)
     const id = await assicuratiCliente()
     if (!id) { setBusy(false); return }
@@ -119,9 +121,10 @@ export default function NuovoCliente() {
         <div className="bg-white rounded-xl shadow p-4 space-y-3">
           <input value={q} onChange={e => setQ(e.target.value)} placeholder="Cerca cliente, almeno 2 lettere..." className="w-full border rounded-lg px-3 py-2" />
           {trovati.map(c => (
-            <button key={c.id} type="button" onClick={() => { setClientId(c.id); setNuovo(false) }} className={'block w-full text-left px-3 py-2 rounded ' + (clientId === c.id ? 'bg-blue-50 font-medium' : '')}>{c.name}</button>
+            <button key={c.id} type="button" onClick={() => scegliCliente(c.id)} className={'block w-full text-left px-3 py-2 rounded ' + (clientId === c.id ? 'bg-blue-50 font-medium' : '')}>{c.name}</button>
           ))}
           {scelto ? <p className="text-sm text-green-700">Cliente: {scelto.name}</p> : null}
+          {haAbbonamento && modo === 'abbonamento' ? <p className="text-sm text-red-600 font-medium">Abbonamento già presente</p> : null}
           <button type="button" onClick={() => { setNuovo(!nuovo); setClientId(''); setFittizio(false) }} className="text-sm text-blue-600">Aggiungi cliente nuovo</button>
           <button type="button" onClick={() => { setFittizio(!fittizio); setNuovo(true); setClientId('') }} className={'text-sm ' + (fittizio ? 'text-amber-600 font-medium' : 'text-slate-500')}>Nome fittizio (non in anagrafica)</button>
           {nuovo || fittizio ? (
@@ -153,15 +156,14 @@ export default function NuovoCliente() {
                 <button type="button" onClick={() => setSim(s => Math.max(0, s - 1))} className="w-8 h-8 border rounded text-lg">−</button>
                 <span className="w-10 text-center border rounded py-1">{sim}</span>
                 <button type="button" onClick={() => setSim(s => s + 1)} className="w-8 h-8 border rounded text-lg">+</button>
-                <span className="text-sm text-slate-500">SIM Wuarda</span>
               </div>
               <button type="button" disabled={busy} onClick={salvaAbbonamento} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Salva abbonamento</button>
             </>
           ) : (
             <>
-              <label className="text-sm">Data</label>
+              <label className="text-sm">Data intervento</label>
               <input type="date" value={dataIntervento} onChange={e => setDataIntervento(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
-              <label className="text-sm">Pagamento</label>
+              <label className="text-sm">Metodo di pagamento</label>
               <select value={pagamento} onChange={e => setPagamento(e.target.value)} className="w-full border rounded-lg px-3 py-2">
                 <option value="da_fatturare">Da fatturare</option>
                 <option value="garanzia">In garanzia</option>
