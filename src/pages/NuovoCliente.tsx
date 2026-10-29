@@ -142,7 +142,12 @@ export default function NuovoCliente() {
               </select>
               {plantType === 'Altro' ? <input value={plantOther} onChange={e => setPlantOther(e.target.value)} placeholder="Tipo impianto" className="w-full border rounded-lg px-3 py-2" /> : null}
               <label className="text-sm">Numero SIM Wuarda</label>
-              <input type="number" min="0" value={sim} onChange={e => setSim(Number(e.target.value))} className="w-full border rounded-lg px-3 py-2" />
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setSim(s => Math.max(0, s - 1))} className="w-8 h-8 border rounded text-lg">−</button>
+                <span className="w-10 text-center border rounded py-1">{sim}</span>
+                <button type="button" onClick={() => setSim(s => s + 1)} className="w-8 h-8 border rounded text-lg">+</button>
+                <span className="text-sm text-slate-500">SIM Wuarda</span>
+              </div>
               <button type="button" disabled={busy} onClick={salvaAbbonamento} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Salva abbonamento</button>
             </>
           ) : (

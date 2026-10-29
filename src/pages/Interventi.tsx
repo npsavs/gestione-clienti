@@ -167,6 +167,7 @@ export default function Interventi() {
         <button type="button" onClick={() => setFiltro('pos')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'pos' ? 'bg-blue-600 text-white' : 'border')}>Pagato con POS</button>
         <button type="button" onClick={() => setFiltro('bonifico')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'bonifico' ? 'bg-purple-600 text-white' : 'border')}>Paga con bonifico</button>
         <button type="button" onClick={() => setFiltro('fatturato')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'fatturato' ? 'bg-emerald-600 text-white' : 'border')}>Fatturato</button>
+        <button type="button" onClick={() => setFiltro('garanzia')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'garanzia' ? 'bg-slate-600 text-white' : 'border')}>In garanzia</button>
       </div>
       {cliente ? (
         <div className="space-y-3">
