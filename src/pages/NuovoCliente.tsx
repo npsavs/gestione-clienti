@@ -47,6 +47,11 @@ export default function NuovoCliente() {
   async function assicuratiCliente() {
     if (clientId) return clientId
     if (!name.trim()) { alert('Scrivi il nome'); return '' }
+    const esistente = clients.find(c => c.name.toLowerCase() === name.trim().toLowerCase())
+    if (esistente && !fittizio) {
+      alert('Questo cliente esiste già in anagrafica: ' + esistente.name + '. Selezionalo dalla ricerca.')
+      return ''
+    }
     const ins = await supabase.from('clients').insert({
       name: name.trim(),
       phone: phone || null,
