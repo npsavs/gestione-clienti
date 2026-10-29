@@ -23,7 +23,14 @@ export default function NuovoCliente() {
   const [voci, setVoci] = useState([''])
   const [pagamento, setPagamento] = useState('da_fatturare')
   const [importo, setImporto] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [haAbbonamento, setHaAbbonamento] = useState(false)
+
+  async function scegliCliente(id: string) {
+    setClientId(id)
+    setNuovo(false)
+    const { data } = await supabase.from('subscriptions').select('id').eq('client_id', id).limit(1)
+    setHaAbbonamento(!!(data && data.length))
+  }
 
   useEffect(() => {
     async function carica() {

@@ -129,7 +129,11 @@ export default function ModificaCliente() {
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Numero SIM Wuarda</label>
-          <input name="sim_count" type="number" min="0" value={form.sim_count} onChange={e => setForm(f => ({ ...f, sim_count: Number(e.target.value) }))} className="w-full border rounded-lg px-3 py-2" />
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setForm(f => ({ ...f, sim_count: Math.max(0, f.sim_count - 1) }))} className="w-8 h-8 border rounded text-lg">−</button>
+            <span className="w-10 text-center border rounded py-1">{form.sim_count}</span>
+            <button type="button" onClick={() => setForm(f => ({ ...f, sim_count: f.sim_count + 1 }))} className="w-8 h-8 border rounded text-lg">+</button>
+          </div>
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Tipo Impianto</label>
