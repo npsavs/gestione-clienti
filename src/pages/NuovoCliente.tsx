@@ -17,7 +17,7 @@ export default function NuovoCliente() {
   const [packageType, setPackageType] = useState('Classic')
   const [plantType, setPlantType] = useState('Ajax')
   const [plantOther, setPlantOther] = useState('')
-  const [endDate, setEndDate] = useState(format(addYears(new Date(), 1), 'yyyy-MM-dd'))
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [sim, setSim] = useState(0)
   const [dataIntervento, setDataIntervento] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [pagamento, setPagamento] = useState('da_fatturare')
