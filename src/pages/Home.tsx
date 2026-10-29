@@ -23,8 +23,16 @@ export default function Home() {
         start += 1000
       }
       setClients(tutti)
-      const { data: s } = await supabase.from('subscriptions').select('*')
-      setSubs(s || [])
+      const { data: s } = await supabase.from('subscriptions').select('*').order('created_at', { ascending: false })
+      const ultimi: any[] = []
+      const visti = new Set()
+      for (const sub of s || []) {
+        if (!visti.has(sub.client_id)) {
+          visti.add(sub.client_id)
+          ultimi.push(sub)
+        }
+      }
+      setSubs(ultimi)
       const { data: i } = await supabase.from('interventions').select('*, clients(name)').order('created_at', { ascending: false })
       setInterventi(i || [])
     }
@@ -59,6 +67,7 @@ export default function Home() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Panoramica abbonamenti</h1>
+      <button type="button" onClick={() => window.location.reload()} className="text-sm border px-3 py-1 rounded-lg">Aggiorna</button>
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-xl shadow p-4">
           <p className="text-xs text-slate-500">In scadenza questo mese</p>
