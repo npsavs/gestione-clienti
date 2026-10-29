@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { format, addYears, subYears } from 'date-fns'
+import { format, subYears } from 'date-fns'
 
 export default function NuovoCliente() {
   const navigate = useNavigate()
