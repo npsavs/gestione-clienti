@@ -4,11 +4,16 @@ import { supabase } from '../lib/supabase'
 import { parseISO, format } from 'date-fns'
 import { it } from 'date-fns/locale'
 
+function nSim(s: any) {
+  return Number((s?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
+}
+
 export default function Home() {
   const [clients, setClients] = useState<any[]>([])
   const [subs, setSubs] = useState<any[]>([])
   const [interventi, setInterventi] = useState<any[]>([])
   const [filtro, setFiltro] = useState('scadenza')
+  const [filtroSim, setFiltroSim] = useState('tutte')
   const [mostraInterventi, setMostraInterventi] = useState(false)
 
   useEffect(() => {
@@ -55,7 +60,27 @@ export default function Home() {
   const attivi = conAbb.filter(s => gruppo(s) === 'attivi')
   const scadenza = conAbb.filter(s => gruppo(s) === 'scadenza')
   const scaduti = conAbb.filter(s => gruppo(s) === 'scaduti')
-  const lista = filtro === 'attivi' ? attivi : filtro === 'scaduti' ? scaduti : scadenza
+  const perStato = filtro === 'attivi' ? attivi : filtro === 'scaduti' ? scaduti : scadenza
+
+  function passaSim(s: any) {
+    const n = nSim(s)
+    if (filtroSim === 'tutte') return true
+    if (filtroSim === '0') return n === 0
+    if (filtroSim === '1') return n === 1
+    if (filtroSim === '2') return n === 2
+    if (filtroSim === '3+') return n >= 3
+    return true
+  }
+
+  const lista = perStato.filter(passaSim)
+
+  const nSimFiltro = (key: string) => {
+    if (key === '0') return perStato.filter(s => nSim(s) === 0).length
+    if (key === '1') return perStato.filter(s => nSim(s) === 1).length
+    if (key === '2') return perStato.filter(s => nSim(s) === 2).length
+    if (key === '3+') return perStato.filter(s => nSim(s) >= 3).length
+    return perStato.length
+  }
 
   const daFatturare = interventi.filter(i => !i.invoice_id && i.payment_type !== 'garanzia' && i.payment_type !== 'fatturato')
 
@@ -66,8 +91,10 @@ export default function Home() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Panoramica abbonamenti</h1>
-      <button type="button" onClick={() => window.location.reload()} className="text-sm border px-3 py-1 rounded-lg">Aggiorna</button>
+      <div className="flex flex-wrap items-center gap-2">
+        <h1 className="text-2xl font-bold">Panoramica abbonamenti</h1>
+        <button type="button" onClick={() => window.location.reload()} className="text-sm border px-3 py-1 rounded-lg">Aggiorna</button>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-xl shadow p-4">
           <p className="text-xs text-slate-500">In scadenza questo mese</p>
@@ -103,15 +130,26 @@ export default function Home() {
         <button type="button" onClick={() => setFiltro('scadenza')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-white border')}>In scadenza ({scadenza.length})</button>
         <button type="button" onClick={() => setFiltro('scaduti')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'scaduti' ? 'bg-red-600 text-white' : 'bg-white border')}>Scaduti ({scaduti.length})</button>
       </div>
+      <div className="flex flex-wrap gap-2">
+        <span className="text-sm text-slate-500 self-center">SIM Wuarda:</span>
+        <button type="button" onClick={() => setFiltroSim('tutte')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === 'tutte' ? 'bg-slate-800 text-white' : 'bg-white border')}>Tutte ({nSimFiltro('tutte')})</button>
+        <button type="button" onClick={() => setFiltroSim('0')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === '0' ? 'bg-slate-800 text-white' : 'bg-white border')}>Nessuna ({nSimFiltro('0')})</button>
+        <button type="button" onClick={() => setFiltroSim('1')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === '1' ? 'bg-slate-800 text-white' : 'bg-white border')}>1 SIM ({nSimFiltro('1')})</button>
+        <button type="button" onClick={() => setFiltroSim('2')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === '2' ? 'bg-slate-800 text-white' : 'bg-white border')}>2 SIM ({nSimFiltro('2')})</button>
+        <button type="button" onClick={() => setFiltroSim('3+')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === '3+' ? 'bg-slate-800 text-white' : 'bg-white border')}>3+ SIM ({nSimFiltro('3+')})</button>
+      </div>
       <div className="bg-white rounded-xl shadow divide-y">
         {lista.length === 0 ? <p className="p-4 text-sm text-slate-500">Nessun cliente in questo filtro</p> : null}
-        {lista.map(s => (
-          <Link key={s.id} to={'/client/' + s.client_id} className="block px-4 py-3 hover:bg-slate-50">
-            <p className="font-medium">{byClient[s.client_id]?.name || 'Cliente'}</p>
-            <p className="text-sm text-slate-500">{s.package_type || '-'} · {format(parseISO(s.end_date), 'dd MMM yyyy', { locale: it })}</p>
-            <p className="text-xs text-slate-400">{s.notes?.match(/SIM Wuarda: (\d+)/)?.[1] ? 'SIM Wuarda: ' + s.notes.match(/SIM Wuarda: (\d+)/)[1] : s.has_sim_wuarda ? 'SIM Wuarda' : ''} · {gruppo(s) === 'attivi' ? 'Attivo' : gruppo(s) === 'scadenza' ? 'In scadenza' : 'Scaduto'}</p>
-          </Link>
-        ))}
+        {lista.map(s => {
+          const n = nSim(s)
+          return (
+            <Link key={s.id} to={'/client/' + s.client_id} className="block px-4 py-3 hover:bg-slate-50">
+              <p className="font-medium">{byClient[s.client_id]?.name || 'Cliente'}</p>
+              <p className="text-sm text-slate-500">{s.package_type || '-'} · {format(parseISO(s.end_date), 'dd MMM yyyy', { locale: it })}</p>
+              <p className="text-xs text-slate-400">{n > 0 ? 'SIM Wuarda: ' + n : 'Nessuna SIM'} · {gruppo(s) === 'attivi' ? 'Attivo' : gruppo(s) === 'scadenza' ? 'In scadenza' : 'Scaduto'}</p>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
