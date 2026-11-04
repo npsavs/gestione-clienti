@@ -13,7 +13,7 @@ export default function Home() {
   const [subs, setSubs] = useState<any[]>([])
   const [interventi, setInterventi] = useState<any[]>([])
   const [filtro, setFiltro] = useState('scadenza')
-  const [filtroSim, setFiltroSim] = useState('tutte')
+  const [soloSim, setSoloSim] = useState(false)
   const [mostraInterventi, setMostraInterventi] = useState(false)
 
   useEffect(() => {
@@ -61,26 +61,12 @@ export default function Home() {
   const scadenza = conAbb.filter(s => gruppo(s) === 'scadenza')
   const scaduti = conAbb.filter(s => gruppo(s) === 'scaduti')
   const perStato = filtro === 'attivi' ? attivi : filtro === 'scaduti' ? scaduti : scadenza
+  const lista = soloSim ? perStato.filter(s => nSim(s) > 0) : perStato
 
-  function passaSim(s: any) {
-    const n = nSim(s)
-    if (filtroSim === 'tutte') return true
-    if (filtroSim === '0') return n === 0
-    if (filtroSim === '1') return n === 1
-    if (filtroSim === '2') return n === 2
-    if (filtroSim === '3+') return n >= 3
-    return true
-  }
-
-  const lista = perStato.filter(passaSim)
-
-  const nSimFiltro = (key: string) => {
-    if (key === '0') return perStato.filter(s => nSim(s) === 0).length
-    if (key === '1') return perStato.filter(s => nSim(s) === 1).length
-    if (key === '2') return perStato.filter(s => nSim(s) === 2).length
-    if (key === '3+') return perStato.filter(s => nSim(s) >= 3).length
-    return perStato.length
-  }
+  const totSimAttivi = attivi.reduce((s, x) => s + nSim(x), 0)
+  const totSimScadenza = scadenza.reduce((s, x) => s + nSim(x), 0)
+  const totSimScaduti = scaduti.reduce((s, x) => s + nSim(x), 0)
+  const totSimCorrente = perStato.reduce((s, x) => s + nSim(x), 0)
 
   const daFatturare = interventi.filter(i => !i.invoice_id && i.payment_type !== 'garanzia' && i.payment_type !== 'fatturato')
 
@@ -126,17 +112,14 @@ export default function Home() {
         </div>
       ) : null}
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => setFiltro('attivi')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'attivi' ? 'bg-green-600 text-white' : 'bg-white border')}>Attivi ({attivi.length})</button>
-        <button type="button" onClick={() => setFiltro('scadenza')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-white border')}>In scadenza ({scadenza.length})</button>
-        <button type="button" onClick={() => setFiltro('scaduti')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'scaduti' ? 'bg-red-600 text-white' : 'bg-white border')}>Scaduti ({scaduti.length})</button>
+        <button type="button" onClick={() => setFiltro('attivi')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'attivi' ? 'bg-green-600 text-white' : 'bg-white border')}>Attivi ({attivi.length}) · SIM {totSimAttivi}</button>
+        <button type="button" onClick={() => setFiltro('scadenza')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-white border')}>In scadenza ({scadenza.length}) · SIM {totSimScadenza}</button>
+        <button type="button" onClick={() => setFiltro('scaduti')} className={'px-4 py-2 rounded-full text-sm ' + (filtro === 'scaduti' ? 'bg-red-600 text-white' : 'bg-white border')}>Scaduti ({scaduti.length}) · SIM {totSimScaduti}</button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        <span className="text-sm text-slate-500 self-center">SIM Wuarda:</span>
-        <button type="button" onClick={() => setFiltroSim('tutte')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === 'tutte' ? 'bg-slate-800 text-white' : 'bg-white border')}>Tutte ({nSimFiltro('tutte')})</button>
-        <button type="button" onClick={() => setFiltroSim('0')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === '0' ? 'bg-slate-800 text-white' : 'bg-white border')}>Nessuna ({nSimFiltro('0')})</button>
-        <button type="button" onClick={() => setFiltroSim('1')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === '1' ? 'bg-slate-800 text-white' : 'bg-white border')}>1 SIM ({nSimFiltro('1')})</button>
-        <button type="button" onClick={() => setFiltroSim('2')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === '2' ? 'bg-slate-800 text-white' : 'bg-white border')}>2 SIM ({nSimFiltro('2')})</button>
-        <button type="button" onClick={() => setFiltroSim('3+')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtroSim === '3+' ? 'bg-slate-800 text-white' : 'bg-white border')}>3+ SIM ({nSimFiltro('3+')})</button>
+      <div className="flex flex-wrap gap-2 items-center">
+        <button type="button" onClick={() => setSoloSim(!soloSim)} className={'px-4 py-2 rounded-full text-sm ' + (soloSim ? 'bg-slate-800 text-white' : 'bg-white border')}>
+          {soloSim ? 'Solo con SIM' : 'Tutti'} · SIM totali: {totSimCorrente}
+        </button>
       </div>
       <div className="bg-white rounded-xl shadow divide-y">
         {lista.length === 0 ? <p className="p-4 text-sm text-slate-500">Nessun cliente in questo filtro</p> : null}
