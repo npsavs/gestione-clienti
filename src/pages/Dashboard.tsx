@@ -49,7 +49,7 @@ export default function Dashboard() {
     return { label: 'Attivo', color: 'bg-green-100 text-green-700', key: 'attivo' }
   }
 
-  function exportScadenzeMese() {
+   function exportScadenzeMese() {
     const now = new Date()
     const daEsportare = clients.filter(c => {
       if (!c.subscription?.end_date) return false
@@ -60,7 +60,9 @@ export default function Dashboard() {
     const header = ['Nome', 'Email', 'Telefono', 'Tipo Abbonamento', 'Data Scadenza', 'SIM Wuarda']
     const rows = daEsportare.map(c => {
       const sub = c.subscription!
-      return [c.name, c.email || '', c.phone || '', sub.package_type || '', format(parseISO(sub.end_date), 'dd/MM/yyyy'), sub.has_sim_wuarda ? 'Si' : 'No']
+      const nSim = Number(((sub as any).notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
+      const simCell = nSim > 0 ? String(nSim) : 'No'
+      return [c.name, c.email || '', c.phone || '', sub.package_type || '', format(parseISO(sub.end_date), 'dd/MM/yyyy'), simCell]
     })
     const csvContent = [header, ...rows].map(row => row.map(cell => '"' + cell + '"').join(';')).join('\n')
     const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
