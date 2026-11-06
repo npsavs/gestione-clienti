@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { parseISO, format } from 'date-fns'
-import { it } from 'date-fns/locale'
 
 function nSim(s: any) {
   return Number((s?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
