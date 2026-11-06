@@ -17,9 +17,10 @@ export interface Subscription {
   notes: string | null
   package_type?: string
   has_sim_wuarda?: boolean
-  plant_type?: string
+  plant_type?: string          // ora può contenere più valori separati da virgola (es. "Ajax, Avs")
   plant_type_other?: string | null
   auto_renew?: boolean
+  alias?: string | null        // nuovo campo
 }
 
 export interface Intervention {

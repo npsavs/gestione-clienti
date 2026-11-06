@@ -89,7 +89,11 @@ export default function Dashboard() {
   const cerca = search.trim().toLowerCase()
   const base = clients.filter(c => {
     if (!cerca) return true
-    return c.name.toLowerCase().includes(cerca) || (c.email || '').toLowerCase().includes(cerca) || (c.phone || '').includes(cerca)
+    const nome = c.name.toLowerCase()
+    const email = (c.email || '').toLowerCase()
+    const telefono = (c.phone || '')
+    const alias = ((c.subscription as any)?.alias || '').toLowerCase()
+    return nome.includes(cerca) || email.includes(cerca) || telefono.includes(cerca) || alias.includes(cerca)
   })
 
   function passaStato(c: (typeof base)[number]) {
@@ -120,19 +124,22 @@ export default function Dashboard() {
         </div>
         <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nuovo</Link>
       </div>
+
       <input
         type="text"
-        placeholder="Cerca nome, email o telefono..."
+        placeholder="Cerca nome, email, telefono o alias..."
         value={search}
         onChange={e => setSearch(e.target.value)}
         className="w-full border rounded-lg px-4 py-2 mb-4"
       />
+
       <div className="flex gap-2 mb-3 flex-wrap">
         <button type="button" onClick={() => setFilter('tutti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100')}>Tutti ({base.length})</button>
         <button type="button" onClick={() => setFilter('attivi')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'attivi' ? 'bg-green-600 text-white' : 'bg-gray-100')}>Contratti attivi ({nStato('attivo')})</button>
         <button type="button" onClick={() => setFilter('scadenza')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-gray-100')}>In scadenza ({nStato('scadenza')})</button>
         <button type="button" onClick={() => setFilter('scaduti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scaduti' ? 'bg-red-600 text-white' : 'bg-gray-100')}>Scaduti ({nStato('scaduti')})</button>
       </div>
+
       <div className="flex gap-2 mb-6 flex-wrap">
         <button type="button" onClick={() => setPacchetto('')} className={'px-4 py-1.5 rounded-full text-sm ' + (!pacchetto ? 'bg-slate-900 text-white' : 'bg-gray-100')}>Tutti i tipi ({perStato.length})</button>
         {PACCHETTI.map(p => (
@@ -140,21 +147,23 @@ export default function Dashboard() {
         ))}
         <button type="button" onClick={exportScadenzeMese} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta scadenze del mese</button>
       </div>
+
       {filtered.length === 0 ? (
         <p className="text-gray-500 text-center py-10">Nessun cliente</p>
       ) : (
         <div className="space-y-2">
           {filtered.map(client => {
             const status = getStatus(client.subscription)
-           const cardBg =
-  status.key === 'attivo'   ? 'bg-green-200 text-green-900' :
-  status.key === 'scadenza' ? 'bg-yellow-200 text-yellow-900' :
-  status.key === 'scaduti'  ? 'bg-red-200 text-red-900' :
-  'bg-white text-gray-900'
+            const cardBg =
+              status.key === 'attivo'   ? 'bg-green-200 text-green-900' :
+              status.key === 'scadenza' ? 'bg-yellow-200 text-yellow-900' :
+              status.key === 'scaduti'  ? 'bg-red-200 text-red-900' :
+              'bg-white text-gray-900'
 
             const sub = client.subscription
             const nSim = Number(((sub as any)?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
             const hasSim = nSim > 0 || sub?.has_sim_wuarda
+            const alias = (sub as any)?.alias
 
             return (
               <div key={client.id} className={`rounded-xl shadow p-4 space-y-2 ${cardBg}`}>
@@ -168,6 +177,10 @@ export default function Dashboard() {
                     </span>
                   )}
                 </div>
+
+                {alias && (
+                  <p className="text-xs opacity-80 italic">Alias: {alias}</p>
+                )}
 
                 <div className="flex flex-wrap gap-2 text-sm opacity-90">
                   {sub?.end_date && <span>{format(parseISO(sub.end_date), 'dd/MM/yyyy')}</span>}
@@ -191,7 +204,7 @@ export default function Dashboard() {
                 {client.email && <p className="text-xs opacity-80 break-words">{client.email}</p>}
 
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <Link to={'/client/' + client.id} className="text-sm border border-white/40 px-3 py-1 rounded-lg hover:bg-white/10">
+                  <Link to={'/client/' + client.id} className="text-sm border border-current/30 px-3 py-1 rounded-lg hover:bg-black/5">
                     Scheda
                   </Link>
                 </div>

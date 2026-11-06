@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { format, subYears } from 'date-fns'
 
+const IMPIANTI = ['Ajax', 'Ademco', 'Avs', 'Altro']
+
 export default function NuovoCliente() {
   const navigate = useNavigate()
   const [modo, setModo] = useState<'abbonamento' | 'intervento' | ''>('')
@@ -15,10 +17,11 @@ export default function NuovoCliente() {
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [packageType, setPackageType] = useState('Classic')
-  const [plantType, setPlantType] = useState('Ajax')
+  const [plantTypes, setPlantTypes] = useState<string[]>(['Ajax'])  // multi
   const [plantOther, setPlantOther] = useState('')
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [sim, setSim] = useState(0)
+  const [alias, setAlias] = useState('')                              // nuovo
   const [dataIntervento, setDataIntervento] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [pagamento, setPagamento] = useState('da_fatturare')
   const [importo, setImporto] = useState('')
@@ -52,6 +55,12 @@ export default function NuovoCliente() {
   const trovati = q.trim().length < 2 ? [] : clients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()))
   const scelto = clients.find(c => c.id === clientId)
 
+  function togglePlant(p: string) {
+    setPlantTypes(prev =>
+      prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+    )
+  }
+
   async function assicuratiCliente() {
     if (clientId) return clientId
     if (!name.trim()) { alert('Scrivi il nome'); return '' }
@@ -73,10 +82,12 @@ export default function NuovoCliente() {
 
   async function salvaAbbonamento() {
     if (haAbbonamento) return alert('Abbonamento già presente')
+    if (plantTypes.length === 0) return alert('Seleziona almeno un tipo di impianto')
     setBusy(true)
     const id = await assicuratiCliente()
     if (!id) { setBusy(false); return }
     const start = format(subYears(new Date(endDate), 1), 'yyyy-MM-dd')
+    const plant_type = plantTypes.join(', ')
     const { error } = await supabase.from('subscriptions').insert({
       client_id: id,
       start_date: start,
@@ -84,8 +95,9 @@ export default function NuovoCliente() {
       package_type: packageType,
       has_sim_wuarda: sim > 0,
       notes: sim > 0 ? ('SIM Wuarda: ' + sim) : null,
-      plant_type: plantType,
-      plant_type_other: plantType === 'Altro' ? plantOther : null,
+      plant_type,
+      plant_type_other: plantTypes.includes('Altro') ? plantOther : null,
+      alias: alias.trim() || null,
     })
     setBusy(false)
     if (error) return alert(error.message)
@@ -142,22 +154,59 @@ export default function NuovoCliente() {
             <>
               <label className="text-sm">Data scadenza</label>
               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border rounded-lg px-3 py-2" />
+              
               <label className="text-sm">Tipo abbonamento</label>
               <select value={packageType} onChange={e => setPackageType(e.target.value)} className="w-full border rounded-lg px-3 py-2">
-                <option>Classic</option><option>Premium</option><option>Premium Plus</option><option>Medium</option><option>Basic</option><option>Nuovo Impianto</option>
+                <option>Classic</option>
+                <option>Premium</option>
+                <option>Premium Plus</option>
+                <option>Medium</option>
+                <option>Basic</option>
+                <option>Nuovo Impianto</option>
               </select>
-              <label className="text-sm">Impianto</label>
-              <select value={plantType} onChange={e => setPlantType(e.target.value)} className="w-full border rounded-lg px-3 py-2">
-                <option>Ajax</option><option>Ademco</option><option>Altro</option>
-              </select>
-              {plantType === 'Altro' ? <input value={plantOther} onChange={e => setPlantOther(e.target.value)} placeholder="Tipo impianto" className="w-full border rounded-lg px-3 py-2" /> : null}
+
+              {/* Alias */}
+              <label className="text-sm">Alias (nota / cognome ricercabile)</label>
+              <input
+                value={alias}
+                onChange={e => setAlias(e.target.value)}
+                placeholder="Es. cognome, riferimento, nota..."
+                className="w-full border rounded-lg px-3 py-2"
+              />
+
+              {/* Impianti multipli */}
+              <label className="text-sm">Tipo Impianto (puoi selezionarne più di uno)</label>
+              <div className="flex flex-wrap gap-3">
+                {IMPIANTI.map(p => (
+                  <label key={p} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={plantTypes.includes(p)}
+                      onChange={() => togglePlant(p)}
+                    />
+                    {p}
+                  </label>
+                ))}
+              </div>
+              {plantTypes.includes('Altro') && (
+                <input
+                  value={plantOther}
+                  onChange={e => setPlantOther(e.target.value)}
+                  placeholder="Specifica tipo impianto"
+                  className="w-full border rounded-lg px-3 py-2"
+                />
+              )}
+
               <label className="text-sm">Numero SIM Wuarda</label>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => setSim(s => Math.max(0, s - 1))} className="w-8 h-8 border rounded text-lg">−</button>
                 <span className="w-10 text-center border rounded py-1">{sim}</span>
                 <button type="button" onClick={() => setSim(s => s + 1)} className="w-8 h-8 border rounded text-lg">+</button>
               </div>
-              <button type="button" disabled={busy} onClick={salvaAbbonamento} className="bg-blue-600 text-white px-4 py-2 rounded-lg">Salva abbonamento</button>
+
+              <button type="button" disabled={busy} onClick={salvaAbbonamento} className="bg-blue-600 text-white px-4 py-2 rounded-lg">
+                Salva abbonamento
+              </button>
             </>
           ) : (
             <>
