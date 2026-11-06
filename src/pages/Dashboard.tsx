@@ -44,20 +44,20 @@ export default function Dashboard() {
     const now = new Date()
     const inizioMese = new Date(end.getFullYear(), end.getMonth(), 1)
     const fineMese = new Date(end.getFullYear(), end.getMonth() + 1, 1)
-    if (now >= fineMese) return { label: 'Scaduto', color: 'bg-red-100 text-red-700', key: 'scaduti' }
-    if (now >= inizioMese) return { label: 'In scadenza', color: 'bg-yellow-100 text-yellow-800', key: 'scadenza' }
-    return { label: 'Attivo', color: 'bg-green-100 text-green-700', key: 'attivo' }
+    if (now >= fineMese) return { label: 'SCADUTI', color: 'bg-red-100 text-red-700', key: 'scaduti' }
+    if (now >= inizioMese) return { label: 'IN SCADENZA', color: 'bg-yellow-100 text-yellow-800', key: 'scadenza' }
+    return { label: 'CONTRATTI ATTIVI', color: 'bg-green-100 text-green-700', key: 'attivo' }
   }
 
   function colorePacchetto(tipo?: string) {
     switch (tipo) {
-      case 'Classic':        return 'text-yellow-600 font-medium'      // giallo
-      case 'Basic':          return 'text-green-600 font-medium'
-      case 'Premium':        return 'text-purple-600 font-medium'
-      case 'Medium':         return 'text-sky-500 font-medium'         // celeste
-      case 'Premium Plus':   return 'text-purple-900 font-medium'      // viola scuro
-      case 'Nuovo Impianto': return 'text-green-800 font-medium'       // verde scuro
-      default:               return 'text-gray-700'
+      case 'Classic':        return 'bg-yellow-400 text-yellow-900'
+      case 'Basic':          return 'bg-green-400 text-green-900'
+      case 'Premium':        return 'bg-purple-500 text-white'
+      case 'Medium':         return 'bg-sky-400 text-sky-900'
+      case 'Premium Plus':   return 'bg-purple-800 text-white'
+      case 'Nuovo Impianto': return 'bg-green-800 text-white'
+      default:               return 'bg-gray-300 text-gray-800'
     }
   }
 
@@ -147,31 +147,59 @@ export default function Dashboard() {
           {filtered.map(client => {
             const status = getStatus(client.subscription)
             const cardBg =
-              status.key === 'attivo'   ? 'bg-green-100 border-green-300' :
-              status.key === 'scadenza' ? 'bg-yellow-100 border-yellow-300' :
-              status.key === 'scaduti'  ? 'bg-red-100 border-red-300' :
-              'bg-white border-gray-100'
+              status.key === 'attivo'   ? 'bg-green-800 text-white' :
+              status.key === 'scadenza' ? 'bg-yellow-500 text-yellow-950' :
+              status.key === 'scaduti'  ? 'bg-red-800 text-white' :
+              'bg-white text-gray-900'
+
+            const sub = client.subscription
+            const nSim = Number(((sub as any)?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
+            const hasSim = nSim > 0 || sub?.has_sim_wuarda
 
             return (
-              <div key={client.id} className={`rounded-xl shadow p-4 space-y-2 border ${cardBg}`}>
-                <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
-                <p className="text-sm text-gray-600 break-words">{client.email || '-'} · {client.phone || '-'}</p>
-                <p className={`text-sm ${colorePacchetto(client.subscription?.package_type)}`}>
-                  {client.subscription?.package_type || '-'}
-                </p>
-                <p className="text-sm text-slate-500">
-                  {(client.subscription as any)?.notes?.match(/SIM Wuarda: (\d+)/)?.[1]
-                    ? 'SIM Wuarda: ' + (client.subscription as any).notes.match(/SIM Wuarda: (\d+)/)[1]
-                    : client.subscription?.has_sim_wuarda ? 'SIM Wuarda' : ''}
-                </p>
-                <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
+              <div key={client.id} className={`rounded-xl shadow p-4 space-y-2 ${cardBg}`}>
+                <div className="flex justify-between items-start gap-2">
+                  <Link to={'/client/' + client.id} className="font-semibold text-lg hover:underline">
+                    {client.name}
+                  </Link>
+                  {sub?.package_type && (
+                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${colorePacchetto(sub.package_type)}`}>
+                      {sub.package_type.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-sm opacity-90">
+                  {sub?.end_date && (
+                    <span>{format(parseISO(sub.end_date), 'dd/MM/yyyy')}</span>
+                  )}
+                  <span className="font-medium">{status.label}</span>
+                </div>
+
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <Link to={'/client/' + client.id} className="text-sm border px-3 py-1 rounded-lg">Scheda</Link>
-                  {!client.subscription ? (
-                    <Link to={'/client/' + client.id + '/modifica'} className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg">
-                      Aggiungi abbonamento
-                    </Link>
-                  ) : null}
+                  {sub?.plant_type && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white font-medium">
+                      {sub.plant_type.toUpperCase()}
+                    </span>
+                  )}
+                  {hasSim && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-purple-600 text-white font-medium">
+                      SIM WUARDA{nSim > 0 ? ` ${nSim}` : ''}
+                    </span>
+                  )}
+                  {client.phone && (
+                    <span className="text-xs opacity-90">{client.phone}</span>
+                  )}
+                </div>
+
+                {(client.email) && (
+                  <p className="text-xs opacity-80 break-words">{client.email}</p>
+                )}
+
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <Link to={'/client/' + client.id} className="text-sm border border-white/40 px-3 py-1 rounded-lg hover:bg-white/10">
+                    Scheda
+                  </Link>
                 </div>
               </div>
             )
