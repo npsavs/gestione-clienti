@@ -51,12 +51,13 @@ export default function Dashboard() {
 
   function colorePacchetto(tipo?: string) {
     switch (tipo) {
-      case 'Classic':      return 'text-yellow-600 font-medium'
-      case 'Basic':        return 'text-green-600 font-medium'
-      case 'Premium':      return 'text-purple-600 font-medium'
-      case 'Medium':       return 'text-sky-500 font-medium'      // celeste
-      case 'Premium Plus': return 'text-purple-900 font-medium'   // viola scuro
-      default:             return 'text-gray-700'
+      case 'Classic':        return 'text-yellow-600 font-medium'      // giallo
+      case 'Basic':          return 'text-green-600 font-medium'
+      case 'Premium':        return 'text-purple-600 font-medium'
+      case 'Medium':         return 'text-sky-500 font-medium'         // celeste
+      case 'Premium Plus':   return 'text-purple-900 font-medium'      // viola scuro
+      case 'Nuovo Impianto': return 'text-green-800 font-medium'       // verde scuro
+      default:               return 'text-gray-700'
     }
   }
 
@@ -146,9 +147,9 @@ export default function Dashboard() {
           {filtered.map(client => {
             const status = getStatus(client.subscription)
             const cardBg =
-              status.key === 'attivo'   ? 'bg-green-50 border-green-200' :
-              status.key === 'scadenza' ? 'bg-yellow-50 border-yellow-200' :
-              status.key === 'scaduti'  ? 'bg-red-50 border-red-200' :
+              status.key === 'attivo'   ? 'bg-green-100 border-green-300' :
+              status.key === 'scadenza' ? 'bg-yellow-100 border-yellow-300' :
+              status.key === 'scaduti'  ? 'bg-red-100 border-red-300' :
               'bg-white border-gray-100'
 
             return (
