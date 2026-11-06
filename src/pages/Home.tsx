@@ -8,6 +8,18 @@ function nSim(s: any) {
   return Number((s?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
 }
 
+function colorePacchetto(tipo?: string) {
+  switch (tipo) {
+    case 'Classic':        return 'bg-yellow-300 text-yellow-900'
+    case 'Basic':          return 'bg-green-300 text-green-900'
+    case 'Premium':        return 'bg-purple-400 text-white'
+    case 'Medium':         return 'bg-sky-300 text-sky-900'
+    case 'Premium Plus':   return 'bg-purple-700 text-white'
+    case 'Nuovo Impianto': return 'bg-green-700 text-white'
+    default:               return 'bg-gray-300 text-gray-800'
+  }
+}
+
 export default function Home() {
   const [clients, setClients] = useState<any[]>([])
   const [subs, setSubs] = useState<any[]>([])
@@ -21,7 +33,7 @@ export default function Home() {
       const tutti: any[] = []
       let start = 0
       while (true) {
-        const { data } = await supabase.from('clients').select('id, name, phone').order('name').range(start, start + 999)
+        const { data } = await supabase.from('clients').select('id, name, phone, email').order('name').range(start, start + 999)
         if (!data || data.length === 0) break
         tutti.push(...data)
         if (data.length < 1000) break
@@ -121,15 +133,45 @@ export default function Home() {
           {soloSim ? 'Solo con SIM' : 'Tutti'} · SIM totali: {totSimCorrente}
         </button>
       </div>
-      <div className="bg-white rounded-xl shadow divide-y">
-        {lista.length === 0 ? <p className="p-4 text-sm text-slate-500">Nessun cliente in questo filtro</p> : null}
+      <div className="space-y-2">
+        {lista.length === 0 ? <p className="p-4 text-sm text-slate-500 bg-white rounded-xl">Nessun cliente in questo filtro</p> : null}
         {lista.map(s => {
           const n = nSim(s)
+          const stato = gruppo(s)
+          const cardBg =
+            stato === 'attivi'   ? 'bg-green-600 text-white' :
+            stato === 'scadenza' ? 'bg-yellow-400 text-yellow-950' :
+            'bg-red-600 text-white'
+          const client = byClient[s.client_id]
+
           return (
-            <Link key={s.id} to={'/client/' + s.client_id} className="block px-4 py-3 hover:bg-slate-50">
-              <p className="font-medium">{byClient[s.client_id]?.name || 'Cliente'}</p>
-              <p className="text-sm text-slate-500">{s.package_type || '-'} · {format(parseISO(s.end_date), 'dd MMM yyyy', { locale: it })}</p>
-              <p className="text-xs text-slate-400">{n > 0 ? 'SIM Wuarda: ' + n : 'Nessuna SIM'} · {gruppo(s) === 'attivi' ? 'Attivo' : gruppo(s) === 'scadenza' ? 'In scadenza' : 'Scaduto'}</p>
+            <Link key={s.id} to={'/client/' + s.client_id} className={`block rounded-xl shadow p-4 space-y-2 ${cardBg}`}>
+              <div className="flex justify-between items-start gap-2">
+                <p className="font-semibold text-lg">{client?.name || 'Cliente'}</p>
+                {s.package_type && (
+                  <span className={`text-xs px-2 py-0.5 rounded font-medium ${colorePacchetto(s.package_type)}`}>
+                    {s.package_type.toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 text-sm opacity-90">
+                <span>{format(parseISO(s.end_date), 'dd/MM/yyyy')}</span>
+                <span className="font-medium">{stato === 'attivi' ? 'CONTRATTI ATTIVI' : stato === 'scadenza' ? 'IN SCADENZA' : 'SCADUTI'}</span>
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {s.plant_type && (
+                  <span className="text-xs px-2 py-0.5 rounded bg-blue-500 text-white font-medium">
+                    {s.plant_type.toUpperCase()}
+                  </span>
+                )}
+                {n > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded bg-purple-500 text-white font-medium">
+                    SIM WUARDA {n}
+                  </span>
+                )}
+                {client?.phone && <span className="text-xs opacity-90">{client.phone}</span>}
+              </div>
+              {client?.email && <p className="text-xs opacity-80 break-words">{client.email}</p>}
             </Link>
           )
         })}
