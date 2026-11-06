@@ -49,7 +49,18 @@ export default function Dashboard() {
     return { label: 'Attivo', color: 'bg-green-100 text-green-700', key: 'attivo' }
   }
 
-   function exportScadenzeMese() {
+  function colorePacchetto(tipo?: string) {
+    switch (tipo) {
+      case 'Classic':      return 'text-yellow-600 font-medium'
+      case 'Basic':        return 'text-green-600 font-medium'
+      case 'Premium':      return 'text-purple-600 font-medium'
+      case 'Medium':       return 'text-sky-500 font-medium'      // celeste
+      case 'Premium Plus': return 'text-purple-900 font-medium'   // viola scuro
+      default:             return 'text-gray-700'
+    }
+  }
+
+  function exportScadenzeMese() {
     const now = new Date()
     const daEsportare = clients.filter(c => {
       if (!c.subscription?.end_date) return false
@@ -108,7 +119,13 @@ export default function Dashboard() {
         </div>
         <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nuovo</Link>
       </div>
-      <input type="text" placeholder="Cerca nome, email o telefono..." value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg px-4 py-2 mb-4" />
+      <input
+        type="text"
+        placeholder="Cerca nome, email o telefono..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        className="w-full border rounded-lg px-4 py-2 mb-4"
+      />
       <div className="flex gap-2 mb-3 flex-wrap">
         <button type="button" onClick={() => setFilter('tutti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100')}>Tutti ({base.length})</button>
         <button type="button" onClick={() => setFilter('attivi')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'attivi' ? 'bg-green-600 text-white' : 'bg-gray-100')}>Contratti attivi ({nStato('attivo')})</button>
@@ -128,16 +145,32 @@ export default function Dashboard() {
         <div className="space-y-2">
           {filtered.map(client => {
             const status = getStatus(client.subscription)
+            const cardBg =
+              status.key === 'attivo'   ? 'bg-green-50 border-green-200' :
+              status.key === 'scadenza' ? 'bg-yellow-50 border-yellow-200' :
+              status.key === 'scaduti'  ? 'bg-red-50 border-red-200' :
+              'bg-white border-gray-100'
+
             return (
-              <div key={client.id} className="bg-white rounded-xl shadow p-4 space-y-2">
+              <div key={client.id} className={`rounded-xl shadow p-4 space-y-2 border ${cardBg}`}>
                 <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
                 <p className="text-sm text-gray-600 break-words">{client.email || '-'} · {client.phone || '-'}</p>
-                <p className="text-sm">{client.subscription?.package_type || '-'}</p>
-                <p className="text-sm text-slate-500">{(client.subscription as any)?.notes?.match(/SIM Wuarda: (\d+)/)?.[1] ? 'SIM Wuarda: ' + (client.subscription as any).notes.match(/SIM Wuarda: (\d+)/)[1] : client.subscription?.has_sim_wuarda ? 'SIM Wuarda' : ''}</p>
+                <p className={`text-sm ${colorePacchetto(client.subscription?.package_type)}`}>
+                  {client.subscription?.package_type || '-'}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {(client.subscription as any)?.notes?.match(/SIM Wuarda: (\d+)/)?.[1]
+                    ? 'SIM Wuarda: ' + (client.subscription as any).notes.match(/SIM Wuarda: (\d+)/)[1]
+                    : client.subscription?.has_sim_wuarda ? 'SIM Wuarda' : ''}
+                </p>
                 <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Link to={'/client/' + client.id} className="text-sm border px-3 py-1 rounded-lg">Scheda</Link>
-                  {!client.subscription ? <Link to={'/client/' + client.id + '/modifica'} className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg">Aggiungi abbonamento</Link> : null}
+                  {!client.subscription ? (
+                    <Link to={'/client/' + client.id + '/modifica'} className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg">
+                      Aggiungi abbonamento
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             )
