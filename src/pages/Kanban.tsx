@@ -101,10 +101,10 @@ function Colonna({ titolo, colore, n, clienti }: { titolo: string; colore: strin
 
 function ClientCard({ client, colore }: { client: ClientWithSub; colore: string }) {
   const sub = client.subscription
-  const cardBg =
-    colore === 'green' ? 'bg-green-600 text-white' :
-    colore === 'yellow' ? 'bg-yellow-400 text-yellow-950' :
-    'bg-red-600 text-white'
+ const cardBg =
+  colore === 'green' ? 'bg-green-200 text-green-900' :
+  colore === 'yellow' ? 'bg-yellow-200 text-yellow-900' :
+  'bg-red-200 text-red-900'
 
   const nSim = Number(((sub as any)?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
   const hasSim = nSim > 0 || sub?.has_sim_wuarda

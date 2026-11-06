@@ -146,11 +146,11 @@ export default function Dashboard() {
         <div className="space-y-2">
           {filtered.map(client => {
             const status = getStatus(client.subscription)
-            const cardBg =
-              status.key === 'attivo'   ? 'bg-green-600 text-white' :
-              status.key === 'scadenza' ? 'bg-yellow-400 text-yellow-950' :
-              status.key === 'scaduti'  ? 'bg-red-600 text-white' :
-              'bg-white text-gray-900'
+           const cardBg =
+  status.key === 'attivo'   ? 'bg-green-200 text-green-900' :
+  status.key === 'scadenza' ? 'bg-yellow-200 text-yellow-900' :
+  status.key === 'scaduti'  ? 'bg-red-200 text-red-900' :
+  'bg-white text-gray-900'
 
             const sub = client.subscription
             const nSim = Number(((sub as any)?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)

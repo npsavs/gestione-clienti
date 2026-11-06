@@ -137,10 +137,10 @@ export default function Home() {
         {lista.map(s => {
           const n = nSim(s)
           const stato = gruppo(s)
-          const cardBg =
-            stato === 'attivi'   ? 'bg-green-600 text-white' :
-            stato === 'scadenza' ? 'bg-yellow-400 text-yellow-950' :
-            'bg-red-600 text-white'
+         const cardBg =
+  stato === 'attivi'   ? 'bg-green-200 text-green-900' :
+  stato === 'scadenza' ? 'bg-yellow-200 text-yellow-900' :
+  'bg-red-200 text-red-900'
           const client = byClient[s.client_id]
 
           return (
