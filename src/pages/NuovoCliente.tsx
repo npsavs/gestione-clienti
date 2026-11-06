@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { format, subYears } from 'date-fns'
 
-const IMPIANTI = ['Ajax', 'Ademco', 'Avs', 'Altro']
+const IMPIANTI = ['Ajax', 'Ademco', 'Avs', 'Ksenia', 'Altro']
 
 export default function NuovoCliente() {
   const navigate = useNavigate()
