@@ -51,12 +51,12 @@ export default function Dashboard() {
 
   function colorePacchetto(tipo?: string) {
     switch (tipo) {
-      case 'Classic':        return 'bg-yellow-400 text-yellow-900'
-      case 'Basic':          return 'bg-green-400 text-green-900'
-      case 'Premium':        return 'bg-purple-500 text-white'
-      case 'Medium':         return 'bg-sky-400 text-sky-900'
-      case 'Premium Plus':   return 'bg-purple-800 text-white'
-      case 'Nuovo Impianto': return 'bg-green-800 text-white'
+      case 'Classic':        return 'bg-yellow-300 text-yellow-900'
+      case 'Basic':          return 'bg-green-300 text-green-900'
+      case 'Premium':        return 'bg-purple-400 text-white'
+      case 'Medium':         return 'bg-sky-300 text-sky-900'
+      case 'Premium Plus':   return 'bg-purple-700 text-white'
+      case 'Nuovo Impianto': return 'bg-green-700 text-white'
       default:               return 'bg-gray-300 text-gray-800'
     }
   }
@@ -147,9 +147,9 @@ export default function Dashboard() {
           {filtered.map(client => {
             const status = getStatus(client.subscription)
             const cardBg =
-              status.key === 'attivo'   ? 'bg-green-800 text-white' :
-              status.key === 'scadenza' ? 'bg-yellow-500 text-yellow-950' :
-              status.key === 'scaduti'  ? 'bg-red-800 text-white' :
+              status.key === 'attivo'   ? 'bg-green-600 text-white' :
+              status.key === 'scadenza' ? 'bg-yellow-400 text-yellow-950' :
+              status.key === 'scaduti'  ? 'bg-red-600 text-white' :
               'bg-white text-gray-900'
 
             const sub = client.subscription
@@ -170,31 +170,25 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex flex-wrap gap-2 text-sm opacity-90">
-                  {sub?.end_date && (
-                    <span>{format(parseISO(sub.end_date), 'dd/MM/yyyy')}</span>
-                  )}
+                  {sub?.end_date && <span>{format(parseISO(sub.end_date), 'dd/MM/yyyy')}</span>}
                   <span className="font-medium">{status.label}</span>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-1">
                   {sub?.plant_type && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-blue-600 text-white font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded bg-blue-500 text-white font-medium">
                       {sub.plant_type.toUpperCase()}
                     </span>
                   )}
                   {hasSim && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-purple-600 text-white font-medium">
+                    <span className="text-xs px-2 py-0.5 rounded bg-purple-500 text-white font-medium">
                       SIM WUARDA{nSim > 0 ? ` ${nSim}` : ''}
                     </span>
                   )}
-                  {client.phone && (
-                    <span className="text-xs opacity-90">{client.phone}</span>
-                  )}
+                  {client.phone && <span className="text-xs opacity-90">{client.phone}</span>}
                 </div>
 
-                {(client.email) && (
-                  <p className="text-xs opacity-80 break-words">{client.email}</p>
-                )}
+                {client.email && <p className="text-xs opacity-80 break-words">{client.email}</p>}
 
                 <div className="flex flex-wrap gap-2 pt-2">
                   <Link to={'/client/' + client.id} className="text-sm border border-white/40 px-3 py-1 rounded-lg hover:bg-white/10">
