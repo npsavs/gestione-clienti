@@ -69,7 +69,16 @@ export default function Home() {
   }
   const mesiPresenti = [...new Set(conAbb.map(meseDi))].sort().reverse()
   const perMese = mese ? perStato.filter(s => meseDi(s) === mese) : perStato
-  const lista = soloSim ? perMese.filter(s => nSim(s) > 0) : perMese
+  const base = soloSim ? perMese.filter(s => nSim(s) > 0) : perMese
+  const oggi = Date.now()
+  const lista = [...base].sort((a, b) => {
+    const da = Math.abs(parseISO(a.end_date).getTime() - oggi)
+    const db = Math.abs(parseISO(b.end_date).getTime() - oggi)
+    if (da !== db) return da - db
+    const na = (byClient[a.client_id]?.name || '').toLowerCase()
+    const nb = (byClient[b.client_id]?.name || '').toLowerCase()
+    return na.localeCompare(nb)
+  })
 
   const totSimAttivi = attivi.reduce((s, x) => s + nSim(x), 0)
   const totSimScadenza = scadenza.reduce((s, x) => s + nSim(x), 0)
