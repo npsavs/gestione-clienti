@@ -245,15 +245,24 @@ export default function Interventi() {
             <button type="button" onClick={() => setLimite(100)} className={'text-xs px-2 py-1 rounded border ' + (limite === 100 ? 'bg-slate-800 text-white' : '')}>100</button>
           </div>
           {gruppiUltimi.map(items => (
-            <Link key={items[0].id} to={'/client/' + items[0].client_id} className="block bg-white rounded-xl shadow p-4 space-y-1 hover:bg-slate-50">
-              <p className="font-medium">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {items[0].clients?.name || 'Cliente'}</p>
+            <div key={items[0].id} className="bg-white rounded-xl shadow p-4 space-y-1">
+              <Link to={'/client/' + items[0].client_id} className="font-medium text-blue-600">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {items[0].clients?.name || 'Cliente'}</Link>
               {items.map(item => (
-                <div key={item.id} className="border-t pt-1">
-                  <p className="text-sm text-slate-600">{item.description}</p>
-                  <p className="text-xs text-slate-500">{item.payment_type || '-'}</p>
+                <div key={item.id} className="border-t pt-2 flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-slate-600">{item.description}</p>
+                    <p className="text-xs text-slate-500">{Number(item.amount || 0).toFixed(2)} EUR</p>
+                    <div className="flex gap-2 mt-1">
+                      <button type="button" onClick={() => segnaRapido(item.id, 'pagato')} className="text-xs border px-2 py-0.5 rounded">Pagato</button>
+                      <button type="button" onClick={() => segnaRapido(item.id, 'garanzia')} className="text-xs border px-2 py-0.5 rounded">Garanzia</button>
+                    </div>
+                  </div>
+                  <span className={'text-xs font-medium whitespace-nowrap ' + (item.payment_type === 'pagato' || item.payment_type === 'garanzia' ? 'text-green-600' : 'text-slate-400')}>
+                    {item.payment_type === 'pagato' ? 'Pagato' : item.payment_type === 'garanzia' ? 'In garanzia' : ''}
+                  </span>
                 </div>
               ))}
-            </Link>
+            </div>
           ))}
         </div>
       )}
