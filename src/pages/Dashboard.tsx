@@ -149,9 +149,11 @@ export default function Dashboard() {
             return (
               <div key={client.id} className="bg-white rounded-xl shadow p-4 space-y-2">
                 <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
+                {(client as any).alias ? <p className="text-xs text-slate-500">Alias: {(client as any).alias}</p> : null}
                 <p className="text-sm text-gray-600 break-words">{client.email || '-'} · {client.phone || '-'}</p>
-                <p className="text-sm">
+                <p className="text-sm flex items-center gap-2 flex-wrap">
                   <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + (coloreTipo(client.subscription?.package_type || ''))}>{client.subscription?.package_type || '-'}</span>
+                  {client.subscription?.end_date ? <span className="text-slate-500">Scade {format(parseISO(client.subscription.end_date), 'dd/MM/yyyy')}</span> : null}
                 </p>
                 <p className="text-sm text-slate-500">{(client.subscription as any)?.notes?.match(/SIM Wuarda: (\d+)/)?.[1] ? 'SIM Wuarda: ' + (client.subscription as any).notes.match(/SIM Wuarda: (\d+)/)[1] : client.subscription?.has_sim_wuarda ? 'SIM Wuarda' : ''}</p>
                 <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>

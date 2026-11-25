@@ -14,6 +14,7 @@ export default function ModificaCliente() {
 
   const [form, setForm] = useState({
     name: '',
+    alias: '',
     email: '',
     phone: '',
     notes: '',
@@ -47,6 +48,7 @@ export default function ModificaCliente() {
     if (client) {
       setForm({
         name: client.name || '',
+        alias: (client as any).alias || '',
         email: client.email || '',
         phone: client.phone || '',
         notes: client.notes || '',
@@ -73,6 +75,7 @@ export default function ModificaCliente() {
     setSaving(true)
     const { error: clientError } = await supabase.from('clients').update({
       name: form.name,
+      alias: form.alias || null,
       email: form.email || null,
       phone: form.phone || null,
       notes: form.notes || null,
@@ -125,6 +128,10 @@ export default function ModificaCliente() {
         <div>
           <label className="block text-sm font-medium mb-1">Nome *</label>
           <input name="name" value={form.name} onChange={handleChange} required className="w-full border rounded-lg px-3 py-2" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Alias</label>
+          <input name="alias" value={form.alias} onChange={handleChange} placeholder="Nome alternativo o soprannome" className="w-full border rounded-lg px-3 py-2" />
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Email</label>
