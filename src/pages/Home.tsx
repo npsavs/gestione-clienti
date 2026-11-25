@@ -157,7 +157,17 @@ export default function Home() {
           return (
             <Link key={s.id} to={'/client/' + s.client_id} className="block px-4 py-3 hover:bg-slate-50">
               <p className="font-medium">{byClient[s.client_id]?.name || 'Cliente'}</p>
-              <p className="text-sm text-slate-500">{s.package_type || '-'} · {format(parseISO(s.end_date), 'dd MMM yyyy', { locale: it })}</p>
+              <p className="text-sm text-slate-500 flex items-center gap-2">
+                <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + ({
+                  'Classic': 'bg-blue-100 text-blue-800',
+                  'Premium': 'bg-purple-100 text-purple-800',
+                  'Premium Plus': 'bg-amber-100 text-amber-800',
+                  'Medium': 'bg-teal-100 text-teal-800',
+                  'Basic': 'bg-slate-200 text-slate-700',
+                  'Nuovo Impianto': 'bg-green-100 text-green-800',
+                }[s.package_type || ''] || 'bg-gray-100 text-gray-700')}>{s.package_type || '-'}</span>
+                <span>{format(parseISO(s.end_date), 'dd MMM yyyy', { locale: it })}</span>
+              </p>
               <p className="text-xs text-slate-400">{n > 0 ? 'SIM Wuarda: ' + n : 'Nessuna SIM'} · {gruppo(s) === 'attivi' ? 'Attivo' : gruppo(s) === 'scadenza' ? 'In scadenza' : 'Scaduto'}</p>
             </Link>
           )

@@ -7,18 +7,6 @@ import { it } from 'date-fns/locale'
 
 type ClientWithSub = Client & { subscription?: Subscription }
 
-function colorePacchetto(tipo?: string) {
-  switch (tipo) {
-    case 'Classic':        return 'bg-yellow-300 text-yellow-900'
-    case 'Basic':          return 'bg-green-300 text-green-900'
-    case 'Premium':        return 'bg-purple-400 text-white'
-    case 'Medium':         return 'bg-sky-300 text-sky-900'
-    case 'Premium Plus':   return 'bg-purple-700 text-white'
-    case 'Nuovo Impianto': return 'bg-green-700 text-white'
-    default:               return 'bg-gray-300 text-gray-800'
-  }
-}
-
 export default function Kanban() {
   const [clients, setClients] = useState<ClientWithSub[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,7 +56,7 @@ export default function Kanban() {
         <h1 className="text-2xl font-bold">Kanban</h1>
         <div className="flex gap-2">
           <button type="button" onClick={loadClients} className="text-sm border px-3 py-1.5 rounded-lg bg-white">Aggiorna</button>
-          <Link to="/clienti" className="text-sm border px-3 py-1.5 rounded-lg bg-white">Lista</Link>
+          <Link to="/" className="text-sm border px-3 py-1.5 rounded-lg bg-white">Lista</Link>
           <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm">+ Nuovo</Link>
         </div>
       </div>
@@ -87,55 +75,31 @@ function Colonna({ titolo, colore, n, clienti }: { titolo: string; colore: strin
   const badge = colore === 'green' ? 'bg-green-200' : colore === 'yellow' ? 'bg-yellow-200' : 'bg-red-200'
   return (
     <div className={bg + ' rounded-xl p-4'}>
-      <h2 className={'font-semibold mb-3 flex justify-between ' + text}>
-        <span>{titolo}</span>
-        <span className={badge + ' text-xs px-2 py-0.5 rounded-full'}>{n}</span>
-      </h2>
+      <h2 className={'font-semibold mb-3 flex justify-between ' + text}><span>{titolo}</span><span className={badge + ' text-xs px-2 py-0.5 rounded-full'}>{n}</span></h2>
       <div className="space-y-2">
-        {clienti.map(client => <ClientCard key={client.id} client={client} colore={colore} />)}
+        {clienti.map(client => <ClientCard key={client.id} client={client} />)}
         {clienti.length === 0 ? <p className="text-sm text-center py-4 text-slate-400">Nessuno</p> : null}
       </div>
     </div>
   )
 }
 
-function ClientCard({ client, colore }: { client: ClientWithSub; colore: string }) {
+function ClientCard({ client }: { client: ClientWithSub }) {
   const sub = client.subscription
- const cardBg =
-  colore === 'green' ? 'bg-green-200 text-green-900' :
-  colore === 'yellow' ? 'bg-yellow-200 text-yellow-900' :
-  'bg-red-200 text-red-900'
-
-  const nSim = Number(((sub as any)?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
-  const hasSim = nSim > 0 || sub?.has_sim_wuarda
-
   return (
-    <Link to={'/client/' + client.id} className={`block rounded-lg p-3 shadow-sm space-y-1.5 ${cardBg}`}>
-      <div className="flex justify-between items-start gap-1">
-        <p className="font-medium leading-tight">{client.name}</p>
-        {sub?.package_type && (
-          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ${colorePacchetto(sub.package_type)}`}>
-            {sub.package_type.toUpperCase()}
-          </span>
-        )}
-      </div>
-      {sub && (
-        <p className="text-xs opacity-90">
-          Scade {format(parseISO(sub.end_date), 'dd MMM yyyy', { locale: it })}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-1 pt-0.5">
-        {sub?.plant_type && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500 text-white font-medium">
-            {sub.plant_type.toUpperCase()}
-          </span>
-        )}
-        {hasSim && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500 text-white font-medium">
-            SIM{nSim > 0 ? ` ${nSim}` : ''}
-          </span>
-        )}
-      </div>
+    <Link to={'/client/' + client.id} className="block bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+      <p className="font-medium text-gray-900">{client.name}</p>
+      {sub ? <p className="text-xs text-gray-500 mt-1 flex items-center gap-1 flex-wrap">
+        <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + ({
+          'Classic': 'bg-blue-100 text-blue-800',
+          'Premium': 'bg-purple-100 text-purple-800',
+          'Premium Plus': 'bg-amber-100 text-amber-800',
+          'Medium': 'bg-teal-100 text-teal-800',
+          'Basic': 'bg-slate-200 text-slate-700',
+          'Nuovo Impianto': 'bg-green-100 text-green-800',
+        }[sub.package_type || ''] || 'bg-gray-100 text-gray-700')}>{sub.package_type || '—'}</span>
+        <span>· Scade {format(parseISO(sub.end_date), 'dd MMM yyyy', { locale: it })}</span>
+      </p> : <p className="text-xs text-gray-500 mt-1">Solo intervento</p>}
     </Link>
   )
 }

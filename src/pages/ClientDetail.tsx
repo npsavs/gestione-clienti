@@ -237,7 +237,16 @@ export default function ClientDetail() {
         </div>
         {subscription ? (
           <div className="space-y-2 text-sm">
-            <p><strong>Tipo:</strong> {subscription.package_type || '-'}</p>
+            <p className="flex items-center gap-2"><strong>Tipo:</strong>
+              <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + ({
+                'Classic': 'bg-blue-100 text-blue-800',
+                'Premium': 'bg-purple-100 text-purple-800',
+                'Premium Plus': 'bg-amber-100 text-amber-800',
+                'Medium': 'bg-teal-100 text-teal-800',
+                'Basic': 'bg-slate-200 text-slate-700',
+                'Nuovo Impianto': 'bg-green-100 text-green-800',
+              }[subscription.package_type || ''] || 'bg-gray-100 text-gray-700')}>{subscription.package_type || '-'}</span>
+            </p>
             <p><strong>Scadenza:</strong> {format(parseISO(subscription.end_date), 'dd MMMM yyyy', { locale: it })}</p>
             <p><strong>SIM Wuarda:</strong> {(subscription as any).notes?.match(/SIM Wuarda: (\d+)/)?.[1] || (subscription.has_sim_wuarda ? 'Si' : 'No')}</p>
             <p><strong>Impianto:</strong> {subscription.plant_type}{subscription.plant_type === 'Altro' && subscription.plant_type_other ? ' (' + subscription.plant_type_other + ')' : ''}</p>
