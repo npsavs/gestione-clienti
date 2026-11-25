@@ -11,6 +11,8 @@ export default function ModificaCliente() {
   const [clients, setClients] = useState<any[]>([])
   const [cercaCliente, setCercaCliente] = useState('')
   const [nuovoClientId, setNuovoClientId] = useState('')
+  const [pacchetti, setPacchetti] = useState(['Classic', 'Premium', 'Premium Plus', 'Medium', 'Basic', 'Nuovo Impianto'])
+  const [impianti, setImpianti] = useState(['Ajax', 'Ademco', 'Altro'])
 
   const [form, setForm] = useState({
     name: '',
@@ -43,6 +45,11 @@ export default function ModificaCliente() {
       start += 1000
     }
     setClients(tutti)
+    try {
+      const { data: row } = await supabase.from('app_settings').select('value').eq('key', 'gestione').maybeSingle()
+      if (Array.isArray(row?.value?.pacchetti)) setPacchetti(row.value.pacchetti)
+      if (Array.isArray(row?.value?.impianti)) setImpianti(row.value.impianti)
+    } catch {}
     const { data: client } = await supabase.from('clients').select('*').eq('id', id).single()
     const { data: sub } = await supabase.from('subscriptions').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (client) {
@@ -153,12 +160,7 @@ export default function ModificaCliente() {
         <div>
           <label className="block text-sm font-medium mb-1">Tipo Abbonamento</label>
           <select name="package_type" value={form.package_type} onChange={handleChange} className="w-full border rounded-lg px-3 py-2">
-            <option value="Classic">Classic</option>
-            <option value="Premium">Premium</option>
-            <option value="Medium">Medium</option>
-<option value="Premium Plus">Premium Plus</option>
-            <option value="Basic">Basic</option>
-            <option value="Nuovo Impianto">Nuovo Impianto</option>
+            {pacchetti.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
         <div>
@@ -172,9 +174,7 @@ export default function ModificaCliente() {
         <div>
           <label className="block text-sm font-medium mb-1">Tipo Impianto</label>
           <select name="plant_type" value={form.plant_type} onChange={handleChange} className="w-full border rounded-lg px-3 py-2">
-            <option value="Ajax">Ajax</option>
-            <option value="Ademco">Ademco</option>
-            <option value="Altro">Altro tipo</option>
+            {impianti.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         </div>
         {form.plant_type === 'Altro' ? (
