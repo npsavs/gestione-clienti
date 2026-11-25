@@ -4,6 +4,19 @@ import { supabase } from '../lib/supabase'
 import type { Client, Subscription } from '../types'
 import { format, parseISO } from 'date-fns'
 import { it } from 'date-fns/locale'
+const COLORI_TIPO: Record<string, string> = {
+  'Classic': 'bg-blue-100 text-blue-800',
+  'Premium': 'bg-purple-100 text-purple-800',
+  'Premium Plus': 'bg-amber-100 text-amber-800',
+  'Medium': 'bg-teal-100 text-teal-800',
+  'Basic': 'bg-slate-200 text-slate-700',
+  'Nuovo Impianto': 'bg-green-100 text-green-800',
+}
+function coloreTipo(t: string | null | undefined) {
+  return COLORI_TIPO[t || ''] || 'bg-gray-100 text-gray-700'
+}
+
+
 
 type ClientWithSub = Client & { subscription?: Subscription }
 
@@ -90,14 +103,7 @@ function ClientCard({ client }: { client: ClientWithSub }) {
     <Link to={'/client/' + client.id} className="block bg-white rounded-lg p-4 shadow-sm border border-gray-100">
       <p className="font-medium text-gray-900">{client.name}</p>
       {sub ? <p className="text-xs text-gray-500 mt-1 flex items-center gap-1 flex-wrap">
-        <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + ({
-          'Classic': 'bg-blue-100 text-blue-800',
-          'Premium': 'bg-purple-100 text-purple-800',
-          'Premium Plus': 'bg-amber-100 text-amber-800',
-          'Medium': 'bg-teal-100 text-teal-800',
-          'Basic': 'bg-slate-200 text-slate-700',
-          'Nuovo Impianto': 'bg-green-100 text-green-800',
-        }[sub.package_type || ''] || 'bg-gray-100 text-gray-700')}>{sub.package_type || '—'}</span>
+        <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + (coloreTipo(sub.package_type || ''))}>{sub.package_type || '—'}</span>
         <span>· Scade {format(parseISO(sub.end_date), 'dd MMM yyyy', { locale: it })}</span>
       </p> : <p className="text-xs text-gray-500 mt-1">Solo intervento</p>}
     </Link>

@@ -4,6 +4,19 @@ import { supabase } from '../lib/supabase'
 import type { Client, Subscription } from '../types'
 import { format, parseISO, addMonths } from 'date-fns'
 import { it } from 'date-fns/locale'
+const COLORI_TIPO: Record<string, string> = {
+  'Classic': 'bg-blue-100 text-blue-800',
+  'Premium': 'bg-purple-100 text-purple-800',
+  'Premium Plus': 'bg-amber-100 text-amber-800',
+  'Medium': 'bg-teal-100 text-teal-800',
+  'Basic': 'bg-slate-200 text-slate-700',
+  'Nuovo Impianto': 'bg-green-100 text-green-800',
+}
+function coloreTipo(t: string | null | undefined) {
+  return COLORI_TIPO[t || ''] || 'bg-gray-100 text-gray-700'
+}
+
+
 
 const PACCHETTI = ['Classic', 'Premium', 'Premium Plus', 'Medium', 'Basic', 'Nuovo Impianto']
 
@@ -138,14 +151,7 @@ export default function Dashboard() {
                 <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
                 <p className="text-sm text-gray-600 break-words">{client.email || '-'} · {client.phone || '-'}</p>
                 <p className="text-sm">
-                  <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + ({
-                    'Classic': 'bg-blue-100 text-blue-800',
-                    'Premium': 'bg-purple-100 text-purple-800',
-                    'Premium Plus': 'bg-amber-100 text-amber-800',
-                    'Medium': 'bg-teal-100 text-teal-800',
-                    'Basic': 'bg-slate-200 text-slate-700',
-                    'Nuovo Impianto': 'bg-green-100 text-green-800',
-                  }[client.subscription?.package_type || ''] || 'bg-gray-100 text-gray-700')}>{client.subscription?.package_type || '-'}</span>
+                  <span className={'px-2 py-0.5 rounded-full text-xs font-medium ' + (coloreTipo(client.subscription?.package_type || ''))}>{client.subscription?.package_type || '-'}</span>
                 </p>
                 <p className="text-sm text-slate-500">{(client.subscription as any)?.notes?.match(/SIM Wuarda: (\d+)/)?.[1] ? 'SIM Wuarda: ' + (client.subscription as any).notes.match(/SIM Wuarda: (\d+)/)[1] : client.subscription?.has_sim_wuarda ? 'SIM Wuarda' : ''}</p>
                 <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
