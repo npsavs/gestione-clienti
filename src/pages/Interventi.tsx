@@ -113,8 +113,10 @@ export default function Interventi() {
   }
 
 
-  async function segnaRapido(id: string, tipo: 'pagato' | 'garanzia') {
-    await supabase.from('interventions').update({ payment_type: tipo, amount: tipo === 'garanzia' ? 0 : undefined }).eq('id', id)
+  async function segnaRapido(items: any[], tipo: 'pagato' | 'garanzia' | 'abbonamento') {
+    for (const it of items) {
+      await supabase.from('interventions').update({ payment_type: tipo, amount: tipo === 'garanzia' || tipo === 'abbonamento' ? 0 : undefined }).eq('id', it.id)
+    }
     if (clientId) carica(clientId)
     else caricaUltimi()
   }
@@ -139,6 +141,7 @@ export default function Interventi() {
     if (filtro === 'da_fatturare') return !r.invoice_id && r.payment_type !== 'garanzia' && r.payment_type !== 'fatturato'
     if (filtro === 'fatturato') return r.payment_type === 'fatturato' || !!r.invoice_id
     if (filtro === 'garanzia') return r.payment_type === 'garanzia'
+    if (filtro === 'abbonamento') return r.payment_type === 'abbonamento'
     return true
   }
 
@@ -176,6 +179,7 @@ export default function Interventi() {
         <button type="button" onClick={() => setFiltro('bonifico')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'bonifico' ? 'bg-purple-600 text-white' : 'border')}>Paga con bonifico</button>
         <button type="button" onClick={() => setFiltro('fatturato')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'fatturato' ? 'bg-emerald-600 text-white' : 'border')}>Fatturato</button>
         <button type="button" onClick={() => setFiltro('garanzia')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'garanzia' ? 'bg-slate-600 text-white' : 'border')}>In garanzia</button>
+        <button type="button" onClick={() => setFiltro('abbonamento')} className={'px-3 py-1.5 rounded-full text-sm ' + (filtro === 'abbonamento' ? 'bg-teal-600 text-white' : 'border')}>Compreso nell abbonamento</button>
       </div>
       {cliente ? (
         <div className="space-y-3">
@@ -190,7 +194,17 @@ export default function Interventi() {
           </button>
           {gruppiCliente.map(items => (
             <div key={items[0].id} className="bg-white rounded-xl shadow p-4 space-y-2">
-              <p className="font-medium">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {cliente.name}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {cliente.name}</p>
+                <div className="flex gap-1 items-center">
+                  <button type="button" onClick={() => segnaRapido(items, 'pagato')} className="text-xs border px-2 py-0.5 rounded">Pagato</button>
+                  <button type="button" onClick={() => segnaRapido(items, 'garanzia')} className="text-xs border px-2 py-0.5 rounded">Garanzia</button>
+                  <button type="button" onClick={() => segnaRapido(items, 'abbonamento')} className="text-xs border px-2 py-0.5 rounded">Compreso nell abbonamento</button>
+                  <span className={'text-xs font-medium ' + (['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? 'text-green-600' : 'text-slate-400')}>
+                    {items[0].payment_type === 'pagato' ? 'Pagato' : items[0].payment_type === 'garanzia' ? 'In garanzia' : items[0].payment_type === 'abbonamento' ? 'Compreso nell abbonamento' : ''}
+                  </span>
+                </div>
+              </div>
               {items.map(item => (
                 <div key={item.id} className="border-t pt-2 space-y-1">
                   {editing === item.id ? (
@@ -220,15 +234,11 @@ export default function Interventi() {
                         <p className="text-sm text-slate-600 break-words">{item.description}</p>
                         <p className="text-xs text-slate-500">{Number(item.amount || 0).toFixed(2)} EUR</p>
                         <div className="flex gap-2 mt-1">
-                          <button type="button" onClick={() => segnaRapido(item.id, 'pagato')} className="text-xs border px-2 py-0.5 rounded">Pagato</button>
-                          <button type="button" onClick={() => segnaRapido(item.id, 'garanzia')} className="text-xs border px-2 py-0.5 rounded">Garanzia</button>
                           <button type="button" onClick={() => iniziaEdit(item)} className="text-blue-600 text-xs">Modifica</button>
                           <button type="button" onClick={() => elimina(item.id)} className="text-red-600 text-xs">Elimina</button>
                         </div>
                       </div>
-                      <span className={'text-xs font-medium whitespace-nowrap ' + (item.payment_type === 'pagato' || item.payment_type === 'garanzia' ? 'text-green-600' : 'text-slate-400')}>
-                        {item.payment_type === 'pagato' ? 'Pagato' : item.payment_type === 'garanzia' ? 'In garanzia' : item.payment_type === 'fatturato' ? 'Fatturato' : ''}
-                      </span>
+
                     </div>
                   )}
                 </div>
@@ -246,20 +256,21 @@ export default function Interventi() {
           </div>
           {gruppiUltimi.map(items => (
             <div key={items[0].id} className="bg-white rounded-xl shadow p-4 space-y-1">
-              <Link to={'/client/' + items[0].client_id} className="font-medium text-blue-600">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {items[0].clients?.name || 'Cliente'}</Link>
-              {items.map(item => (
-                <div key={item.id} className="border-t pt-2 flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-600">{item.description}</p>
-                    <p className="text-xs text-slate-500">{Number(item.amount || 0).toFixed(2)} EUR</p>
-                    <div className="flex gap-2 mt-1">
-                      <button type="button" onClick={() => segnaRapido(item.id, 'pagato')} className="text-xs border px-2 py-0.5 rounded">Pagato</button>
-                      <button type="button" onClick={() => segnaRapido(item.id, 'garanzia')} className="text-xs border px-2 py-0.5 rounded">Garanzia</button>
-                    </div>
-                  </div>
-                  <span className={'text-xs font-medium whitespace-nowrap ' + (item.payment_type === 'pagato' || item.payment_type === 'garanzia' ? 'text-green-600' : 'text-slate-400')}>
-                    {item.payment_type === 'pagato' ? 'Pagato' : item.payment_type === 'garanzia' ? 'In garanzia' : ''}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Link to={'/client/' + items[0].client_id} className="font-medium text-blue-600">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {items[0].clients?.name || 'Cliente'}</Link>
+                <div className="flex gap-1 items-center">
+                  <button type="button" onClick={() => segnaRapido(items, 'pagato')} className="text-xs border px-2 py-0.5 rounded">Pagato</button>
+                  <button type="button" onClick={() => segnaRapido(items, 'garanzia')} className="text-xs border px-2 py-0.5 rounded">Garanzia</button>
+                  <button type="button" onClick={() => segnaRapido(items, 'abbonamento')} className="text-xs border px-2 py-0.5 rounded">Compreso nell abbonamento</button>
+                  <span className={'text-xs font-medium ' + (['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? 'text-green-600' : 'text-slate-400')}>
+                    {items[0].payment_type === 'pagato' ? 'Pagato' : items[0].payment_type === 'garanzia' ? 'In garanzia' : items[0].payment_type === 'abbonamento' ? 'Compreso nell abbonamento' : ''}
                   </span>
+                </div>
+              </div>
+              {items.map(item => (
+                <div key={item.id} className="border-t pt-2">
+                  <p className="text-sm text-slate-600">{item.description}</p>
+                  <p className="text-xs text-slate-500">{Number(item.amount || 0).toFixed(2)} EUR</p>
                 </div>
               ))}
             </div>
