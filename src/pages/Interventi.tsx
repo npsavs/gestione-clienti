@@ -112,6 +112,13 @@ export default function Interventi() {
     })
   }
 
+
+  async function segnaRapido(id: string, tipo: 'pagato' | 'garanzia') {
+    await supabase.from('interventions').update({ payment_type: tipo, amount: tipo === 'garanzia' ? 0 : undefined }).eq('id', id)
+    if (clientId) carica(clientId)
+    else caricaUltimi()
+  }
+
   async function salvaEdit() {
     if (!editing) return
     await supabase.from('interventions').update({
@@ -205,17 +212,24 @@ export default function Interventi() {
                       </div>
                     </div>
                   ) : (
-                    <>
-                      {item.payment_type === 'garanzia' ? <p className="text-xs text-slate-500">In garanzia</p> : item.invoice_id || item.payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {item.invoice_number || ''}</p> : (
-                        <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
-                      )}
-                      <p className="text-sm text-slate-600 break-words">{item.description}</p>
-                      <p className="text-xs text-slate-500">{item.payment_type || '-'} · {Number(item.amount || 0).toFixed(2)} EUR</p>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => iniziaEdit(item)} className="text-blue-600 text-sm">Modifica</button>
-                        <button type="button" onClick={() => elimina(item.id)} className="text-red-600 text-sm">Elimina</button>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        {item.payment_type === 'garanzia' ? null : item.invoice_id || item.payment_type === 'fatturato' ? <p className="text-xs text-green-700">Fatturato · {item.invoice_number || ''}</p> : (
+                          <label className="text-sm flex gap-2 items-center"><input type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> Da fatturare</label>
+                        )}
+                        <p className="text-sm text-slate-600 break-words">{item.description}</p>
+                        <p className="text-xs text-slate-500">{Number(item.amount || 0).toFixed(2)} EUR</p>
+                        <div className="flex gap-2 mt-1">
+                          <button type="button" onClick={() => segnaRapido(item.id, 'pagato')} className="text-xs border px-2 py-0.5 rounded">Pagato</button>
+                          <button type="button" onClick={() => segnaRapido(item.id, 'garanzia')} className="text-xs border px-2 py-0.5 rounded">Garanzia</button>
+                          <button type="button" onClick={() => iniziaEdit(item)} className="text-blue-600 text-xs">Modifica</button>
+                          <button type="button" onClick={() => elimina(item.id)} className="text-red-600 text-xs">Elimina</button>
+                        </div>
                       </div>
-                    </>
+                      <span className={'text-xs font-medium whitespace-nowrap ' + (item.payment_type === 'pagato' || item.payment_type === 'garanzia' ? 'text-green-600' : 'text-slate-400')}>
+                        {item.payment_type === 'pagato' ? 'Pagato' : item.payment_type === 'garanzia' ? 'In garanzia' : item.payment_type === 'fatturato' ? 'Fatturato' : ''}
+                      </span>
+                    </div>
                   )}
                 </div>
               ))}
