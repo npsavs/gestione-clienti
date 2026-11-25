@@ -12,6 +12,7 @@ export default function Interventi() {
   const [selected, setSelected] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [filtro, setFiltro] = useState('tutti')
+  const [limite, setLimite] = useState(20)
   const [editing, setEditing] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ description: '', amount: '', payment_type: 'da_fatturare', intervention_date: '' })
 
@@ -30,20 +31,20 @@ export default function Interventi() {
     }
     caricaClienti()
     caricaUltimi()
-  }, [])
+  }, [limite])
 
   function caricaUltimi() {
-    supabase.from('interventions').select('*, clients(name)').order('created_at', { ascending: false }).limit(10).then(({ data }) => setUltimi(data || []))
+    supabase.from('interventions').select('*, clients(name)').order('created_at', { ascending: false }).limit(limite).then(({ data }) => setUltimi(data || []))
   }
 
   function carica(id: string) {
-    supabase.from('interventions').select('*').eq('client_id', id).order('created_at', { ascending: false }).then(({ data }) => setRows(data || []))
+    supabase.from('interventions').select('*').eq('client_id', id).order('created_at', { ascending: false }).limit(limite).then(({ data }) => setRows(data || []))
   }
 
   useEffect(() => {
     if (!clientId) { setRows([]); setSelected([]); return }
     carica(clientId)
-  }, [clientId])
+  }, [clientId, limite])
 
   const trovati = q.trim().length < 2 ? [] : clients.filter(c => c.name.toLowerCase().includes(q.toLowerCase()))
   const cliente = clients.find(c => c.id === clientId)
@@ -171,7 +172,12 @@ export default function Interventi() {
       </div>
       {cliente ? (
         <div className="space-y-3">
-          <p className="font-semibold">{cliente.name} · {visibili.length} interventi</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold">{cliente.name} · {visibili.length} interventi</p>
+            <button type="button" onClick={() => setLimite(20)} className={'text-xs px-2 py-1 rounded border ' + (limite === 20 ? 'bg-slate-800 text-white' : '')}>20</button>
+            <button type="button" onClick={() => setLimite(50)} className={'text-xs px-2 py-1 rounded border ' + (limite === 50 ? 'bg-slate-800 text-white' : '')}>50</button>
+            <button type="button" onClick={() => setLimite(100)} className={'text-xs px-2 py-1 rounded border ' + (limite === 100 ? 'bg-slate-800 text-white' : '')}>100</button>
+          </div>
           <button type="button" onClick={creaFattura} disabled={selected.length === 0 || busy} className="bg-violet-700 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-40">
             {busy ? 'Creazione...' : 'Crea fattura (' + selected.length + ')'}
           </button>
@@ -218,7 +224,12 @@ export default function Interventi() {
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="text-sm text-slate-500">Ultimi 10 interventi</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-sm text-slate-500">Ultimi {limite} interventi</p>
+            <button type="button" onClick={() => setLimite(20)} className={'text-xs px-2 py-1 rounded border ' + (limite === 20 ? 'bg-slate-800 text-white' : '')}>20</button>
+            <button type="button" onClick={() => setLimite(50)} className={'text-xs px-2 py-1 rounded border ' + (limite === 50 ? 'bg-slate-800 text-white' : '')}>50</button>
+            <button type="button" onClick={() => setLimite(100)} className={'text-xs px-2 py-1 rounded border ' + (limite === 100 ? 'bg-slate-800 text-white' : '')}>100</button>
+          </div>
           {gruppiUltimi.map(items => (
             <Link key={items[0].id} to={'/client/' + items[0].client_id} className="block bg-white rounded-xl shadow p-4 space-y-1 hover:bg-slate-50">
               <p className="font-medium">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {items[0].clients?.name || 'Cliente'}</p>
