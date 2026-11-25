@@ -5,11 +5,12 @@ import Login from './pages/Login'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
-import NuovoCliente from './pages/NuovoCliente'
-import ClientDetail from './pages/ClientDetail'
-import ModificaCliente from './pages/ModificaCliente'
 import Kanban from './pages/Kanban'
 import Interventi from './pages/Interventi'
+import ClientDetail from './pages/ClientDetail'
+import ModificaCliente from './pages/ModificaCliente'
+import NuovoCliente from './pages/NuovoCliente'
+import Impostazioni from './pages/Impostazioni'
 
 export default function App() {
   const [session, setSession] = useState<any>(null)
@@ -35,11 +36,13 @@ export default function App() {
         <Route path="/" element={session ? <Layout /> : <Navigate to="/login" />}>
           <Route index element={<Home />} />
           <Route path="clienti" element={<Dashboard />} />
-          <Route path="nuovo-cliente" element={<NuovoCliente />} />
-          <Route path="client/:id" element={<ClientDetail />} />
-          <Route path="client/:id/modifica" element={<ModificaCliente />} />
           <Route path="kanban" element={<Kanban />} />
           <Route path="interventi" element={<Interventi />} />
+          <Route path="nuovo" element={<NuovoCliente />} />
+          <Route path="client/:id" element={<ClientDetail />} />
+          <Route path="client/:id/modifica" element={<ModificaCliente />} />
+          <Route path="impostazioni" element={<Impostazioni />} />
+          <Route path="impostazioni/:sezione" element={<Impostazioni />} />
         </Route>
       </Routes>
     </BrowserRouter>
