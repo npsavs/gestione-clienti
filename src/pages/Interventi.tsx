@@ -196,13 +196,18 @@ export default function Interventi() {
             <div key={items[0].id} className="bg-white rounded-xl shadow p-4 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {cliente.name}</p>
-                <div className="flex gap-1 items-center">
-                  <button type="button" onClick={() => segnaRapido(items, 'pagato')} className="text-xs border px-2 py-0.5 rounded">Pagato</button>
-                  <button type="button" onClick={() => segnaRapido(items, 'garanzia')} className="text-xs border px-2 py-0.5 rounded">Garanzia</button>
-                  <button type="button" onClick={() => segnaRapido(items, 'abbonamento')} className="text-xs border px-2 py-0.5 rounded">Compreso nell abbonamento</button>
-                  <span className={'text-xs font-medium ' + (['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? 'text-green-600' : 'text-slate-400')}>
-                    {items[0].payment_type === 'pagato' ? 'Pagato' : items[0].payment_type === 'garanzia' ? 'In garanzia' : items[0].payment_type === 'abbonamento' ? 'Compreso nell abbonamento' : ''}
-                  </span>
+                <div className="flex gap-2 items-center">
+                  <select value={['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? items[0].payment_type : ''} onChange={e => { if (e.target.value) segnaRapido(items, e.target.value as any) }} className="text-xs border rounded px-2 py-1">
+                    <option value="">—</option>
+                    <option value="pagato">Pagato</option>
+                    <option value="garanzia">In garanzia</option>
+                    <option value="abbonamento">Compreso nell abbonamento</option>
+                  </select>
+                  {['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? (
+                    <span className="text-xs font-medium text-green-600">
+                      {items[0].payment_type === 'pagato' ? 'Pagato' : items[0].payment_type === 'garanzia' ? 'In garanzia' : 'Compreso nell abbonamento'}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               {items.map(item => (
@@ -258,13 +263,18 @@ export default function Interventi() {
             <div key={items[0].id} className="bg-white rounded-xl shadow p-4 space-y-1">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Link to={'/client/' + items[0].client_id} className="font-medium text-blue-600">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {items[0].clients?.name || 'Cliente'}</Link>
-                <div className="flex gap-1 items-center">
-                  <button type="button" onClick={() => segnaRapido(items, 'pagato')} className="text-xs border px-2 py-0.5 rounded">Pagato</button>
-                  <button type="button" onClick={() => segnaRapido(items, 'garanzia')} className="text-xs border px-2 py-0.5 rounded">Garanzia</button>
-                  <button type="button" onClick={() => segnaRapido(items, 'abbonamento')} className="text-xs border px-2 py-0.5 rounded">Compreso nell abbonamento</button>
-                  <span className={'text-xs font-medium ' + (['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? 'text-green-600' : 'text-slate-400')}>
-                    {items[0].payment_type === 'pagato' ? 'Pagato' : items[0].payment_type === 'garanzia' ? 'In garanzia' : items[0].payment_type === 'abbonamento' ? 'Compreso nell abbonamento' : ''}
-                  </span>
+                <div className="flex gap-2 items-center">
+                  <select value={['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? items[0].payment_type : ''} onChange={e => { if (e.target.value) segnaRapido(items, e.target.value as any) }} className="text-xs border rounded px-2 py-1">
+                    <option value="">—</option>
+                    <option value="pagato">Pagato</option>
+                    <option value="garanzia">In garanzia</option>
+                    <option value="abbonamento">Compreso nell abbonamento</option>
+                  </select>
+                  {['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? (
+                    <span className="text-xs font-medium text-green-600">
+                      {items[0].payment_type === 'pagato' ? 'Pagato' : items[0].payment_type === 'garanzia' ? 'In garanzia' : 'Compreso nell abbonamento'}
+                    </span>
+                  ) : null}
                 </div>
               </div>
               {items.map(item => (
