@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Client, Subscription } from '../types'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, addMonths } from 'date-fns'
 import { it } from 'date-fns/locale'
 
 const PACCHETTI = ['Classic', 'Premium', 'Premium Plus', 'Medium', 'Basic', 'Nuovo Impianto']
@@ -44,31 +44,22 @@ export default function Dashboard() {
     const now = new Date()
     const inizioMese = new Date(end.getFullYear(), end.getMonth(), 1)
     const fineMese = new Date(end.getFullYear(), end.getMonth() + 1, 1)
-    if (now >= fineMese) return { label: 'SCADUTI', color: 'bg-red-100 text-red-700', key: 'scaduti' }
-    if (now >= inizioMese) return { label: 'IN SCADENZA', color: 'bg-yellow-100 text-yellow-800', key: 'scadenza' }
-    return { label: 'CONTRATTI ATTIVI', color: 'bg-green-100 text-green-700', key: 'attivo' }
+    if (now >= fineMese) return { label: 'Scaduto', color: 'bg-red-100 text-red-700', key: 'scaduti' }
+    if (now >= inizioMese) return { label: 'In scadenza', color: 'bg-yellow-100 text-yellow-800', key: 'scadenza' }
+    return { label: 'Attivo', color: 'bg-green-100 text-green-700', key: 'attivo' }
   }
 
-  function colorePacchetto(tipo?: string) {
-    switch (tipo) {
-      case 'Classic':        return 'bg-yellow-300 text-yellow-900'
-      case 'Basic':          return 'bg-green-300 text-green-900'
-      case 'Premium':        return 'bg-purple-400 text-white'
-      case 'Medium':         return 'bg-sky-300 text-sky-900'
-      case 'Premium Plus':   return 'bg-purple-700 text-white'
-      case 'Nuovo Impianto': return 'bg-green-700 text-white'
-      default:               return 'bg-gray-300 text-gray-800'
-    }
-  }
-
-  function exportScadenzeMese() {
-    const now = new Date()
+  function exportScadenzeMese(offset: number) {
+    const target = addMonths(new Date(), offset)
+    const mese = target.getMonth()
+    const anno = target.getFullYear()
+    const nomeMese = format(target, 'MMMM yyyy', { locale: it })
     const daEsportare = clients.filter(c => {
       if (!c.subscription?.end_date) return false
       const end = parseISO(c.subscription.end_date)
-      return end.getMonth() === now.getMonth() && end.getFullYear() === now.getFullYear()
+      return end.getMonth() === mese && end.getFullYear() === anno
     })
-    if (daEsportare.length === 0) return alert('Nessun cliente in scadenza questo mese')
+    if (daEsportare.length === 0) return alert('Nessun cliente in scadenza a ' + nomeMese)
     const header = ['Nome', 'Email', 'Telefono', 'Tipo Abbonamento', 'Data Scadenza', 'SIM Wuarda']
     const rows = daEsportare.map(c => {
       const sub = c.subscription!
@@ -81,7 +72,7 @@ export default function Dashboard() {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = 'scadenze_' + format(now, 'MMMM_yyyy', { locale: it }) + '.csv'
+    link.download = 'scadenze_' + format(target, 'MMMM_yyyy', { locale: it }) + '.csv'
     link.click()
     URL.revokeObjectURL(url)
   }
@@ -89,11 +80,7 @@ export default function Dashboard() {
   const cerca = search.trim().toLowerCase()
   const base = clients.filter(c => {
     if (!cerca) return true
-    const nome = c.name.toLowerCase()
-    const email = (c.email || '').toLowerCase()
-    const telefono = (c.phone || '')
-    const alias = ((c.subscription as any)?.alias || '').toLowerCase()
-    return nome.includes(cerca) || email.includes(cerca) || telefono.includes(cerca) || alias.includes(cerca)
+    return c.name.toLowerCase().includes(cerca) || (c.email || '').toLowerCase().includes(cerca) || (c.phone || '').includes(cerca)
   })
 
   function passaStato(c: (typeof base)[number]) {
@@ -124,89 +111,38 @@ export default function Dashboard() {
         </div>
         <Link to="/nuovo-cliente" className="bg-blue-600 text-white px-4 py-2 rounded-lg">+ Nuovo</Link>
       </div>
-
-      <input
-        type="text"
-        placeholder="Cerca nome, email, telefono o alias..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-        className="w-full border rounded-lg px-4 py-2 mb-4"
-      />
-
+      <input type="text" placeholder="Cerca nome, email o telefono..." value={search} onChange={e => setSearch(e.target.value)} className="w-full border rounded-lg px-4 py-2 mb-4" />
       <div className="flex gap-2 mb-3 flex-wrap">
         <button type="button" onClick={() => setFilter('tutti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'tutti' ? 'bg-blue-600 text-white' : 'bg-gray-100')}>Tutti ({base.length})</button>
         <button type="button" onClick={() => setFilter('attivi')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'attivi' ? 'bg-green-600 text-white' : 'bg-gray-100')}>Contratti attivi ({nStato('attivo')})</button>
         <button type="button" onClick={() => setFilter('scadenza')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scadenza' ? 'bg-yellow-500 text-white' : 'bg-gray-100')}>In scadenza ({nStato('scadenza')})</button>
         <button type="button" onClick={() => setFilter('scaduti')} className={'px-4 py-1.5 rounded-full text-sm ' + (filter === 'scaduti' ? 'bg-red-600 text-white' : 'bg-gray-100')}>Scaduti ({nStato('scaduti')})</button>
       </div>
-
       <div className="flex gap-2 mb-6 flex-wrap">
         <button type="button" onClick={() => setPacchetto('')} className={'px-4 py-1.5 rounded-full text-sm ' + (!pacchetto ? 'bg-slate-900 text-white' : 'bg-gray-100')}>Tutti i tipi ({perStato.length})</button>
         {PACCHETTI.map(p => (
           <button key={p} type="button" onClick={() => setPacchetto(p)} className={'px-4 py-1.5 rounded-full text-sm ' + (pacchetto === p ? 'bg-slate-900 text-white' : 'bg-gray-100')}>{p} ({nPack(p)})</button>
         ))}
-        <button type="button" onClick={exportScadenzeMese} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta scadenze del mese</button>
+        <button type="button" onClick={() => exportScadenzeMese(-1)} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta mese precedente</button>
+        <button type="button" onClick={() => exportScadenzeMese(0)} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta scadenze del mese</button>
+        <button type="button" onClick={() => exportScadenzeMese(1)} className="bg-emerald-600 text-white px-4 py-1.5 rounded-full text-sm">Esporta mese successivo</button>
       </div>
-
       {filtered.length === 0 ? (
         <p className="text-gray-500 text-center py-10">Nessun cliente</p>
       ) : (
         <div className="space-y-2">
           {filtered.map(client => {
             const status = getStatus(client.subscription)
-            const cardBg =
-              status.key === 'attivo'   ? 'bg-green-200 text-green-900' :
-              status.key === 'scadenza' ? 'bg-yellow-200 text-yellow-900' :
-              status.key === 'scaduti'  ? 'bg-red-200 text-red-900' :
-              'bg-white text-gray-900'
-
-            const sub = client.subscription
-            const nSim = Number(((sub as any)?.notes || '').match(/SIM Wuarda: (\d+)/)?.[1] || 0)
-            const hasSim = nSim > 0 || sub?.has_sim_wuarda
-            const alias = (sub as any)?.alias
-
             return (
-              <div key={client.id} className={`rounded-xl shadow p-4 space-y-2 ${cardBg}`}>
-                <div className="flex justify-between items-start gap-2">
-                  <Link to={'/client/' + client.id} className="font-semibold text-lg hover:underline">
-                    {client.name}
-                  </Link>
-                  {sub?.package_type && (
-                    <span className={`text-xs px-2 py-0.5 rounded font-medium ${colorePacchetto(sub.package_type)}`}>
-                      {sub.package_type.toUpperCase()}
-                    </span>
-                  )}
-                </div>
-
-                {alias && (
-                  <p className="text-xs opacity-80 italic">Alias: {alias}</p>
-                )}
-
-                <div className="flex flex-wrap gap-2 text-sm opacity-90">
-                  {sub?.end_date && <span>{format(parseISO(sub.end_date), 'dd/MM/yyyy')}</span>}
-                  <span className="font-medium">{status.label}</span>
-                </div>
-
+              <div key={client.id} className="bg-white rounded-xl shadow p-4 space-y-2">
+                <Link to={'/client/' + client.id} className="font-medium text-blue-600">{client.name}</Link>
+                <p className="text-sm text-gray-600 break-words">{client.email || '-'} · {client.phone || '-'}</p>
+                <p className="text-sm">{client.subscription?.package_type || '-'}</p>
+                <p className="text-sm text-slate-500">{(client.subscription as any)?.notes?.match(/SIM Wuarda: (\d+)/)?.[1] ? 'SIM Wuarda: ' + (client.subscription as any).notes.match(/SIM Wuarda: (\d+)/)[1] : client.subscription?.has_sim_wuarda ? 'SIM Wuarda' : ''}</p>
+                <span className={'text-xs px-2 py-1 rounded-full ' + status.color}>{status.label}</span>
                 <div className="flex flex-wrap gap-2 pt-1">
-                  {sub?.plant_type && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-blue-500 text-white font-medium">
-                      {sub.plant_type.toUpperCase()}
-                    </span>
-                  )}
-                  {hasSim && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-purple-500 text-white font-medium">
-                      SIM WUARDA{nSim > 0 ? ` ${nSim}` : ''}
-                    </span>
-                  )}
-                  {client.phone && <span className="text-xs opacity-90">{client.phone}</span>}
-                </div>
-
-                {client.email && <p className="text-xs opacity-80 break-words">{client.email}</p>}
-
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <Link to={'/client/' + client.id} className="text-sm border border-current/30 px-3 py-1 rounded-lg hover:bg-black/5">
-                    Scheda
-                  </Link>
+                  <Link to={'/client/' + client.id} className="text-sm border px-3 py-1 rounded-lg">Scheda</Link>
+                  {!client.subscription ? <Link to={'/client/' + client.id + '/modifica'} className="text-sm bg-blue-600 text-white px-3 py-1 rounded-lg">Aggiungi abbonamento</Link> : null}
                 </div>
               </div>
             )
