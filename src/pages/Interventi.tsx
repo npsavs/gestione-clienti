@@ -13,6 +13,7 @@ export default function Interventi() {
   const [busy, setBusy] = useState(false)
   const [filtro, setFiltro] = useState('tutti')
   const [limite, setLimite] = useState(20)
+  const [menuAperto, setMenuAperto] = useState('')
   const [editing, setEditing] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ description: '', amount: '', payment_type: 'da_fatturare', intervention_date: '' })
 
@@ -197,12 +198,16 @@ export default function Interventi() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {cliente.name}</p>
                 <div className="flex gap-2 items-center">
-                  <select value={['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? items[0].payment_type : ''} onChange={e => { if (e.target.value) segnaRapido(items, e.target.value as any) }} className="text-xs border rounded appearance-none w-6 h-6 bg-white cursor-pointer" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23666\' d=\'M2 4l4 4 4-4\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', color: 'transparent' }} title="Scegli stato">
-                    <option value="">—</option>
-                    <option value="pagato">Pagato</option>
-                    <option value="garanzia">In garanzia</option>
-                    <option value="abbonamento">Compreso nell abbonamento</option>
-                  </select>
+                  <div className="relative">
+                    <button type="button" onClick={() => setMenuAperto(menuAperto === items[0].id ? '' : items[0].id)} className="w-6 h-6 border rounded text-slate-600 leading-none" title="Scegli stato">▾</button>
+                    {menuAperto === items[0].id ? (
+                      <div className="absolute right-0 z-10 mt-1 bg-white border rounded shadow text-sm min-w-[180px]">
+                        <button type="button" onClick={() => { segnaRapido(items, 'pagato'); setMenuAperto('') }} className="block w-full text-left px-3 py-1.5 hover:bg-slate-50">Pagato</button>
+                        <button type="button" onClick={() => { segnaRapido(items, 'garanzia'); setMenuAperto('') }} className="block w-full text-left px-3 py-1.5 hover:bg-slate-50">In garanzia</button>
+                        <button type="button" onClick={() => { segnaRapido(items, 'abbonamento'); setMenuAperto('') }} className="block w-full text-left px-3 py-1.5 hover:bg-slate-50">Compreso nell abbonamento</button>
+                      </div>
+                    ) : null}
+                  </div>
                   {['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? (
                     <span className="text-xs font-medium text-green-600">
                       {items[0].payment_type === 'pagato' ? 'Pagato' : items[0].payment_type === 'garanzia' ? 'In garanzia' : 'Compreso nell abbonamento'}
@@ -264,12 +269,16 @@ export default function Interventi() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Link to={'/client/' + items[0].client_id} className="font-medium text-blue-600">{format(parseISO(items[0].intervention_date), 'dd/MM/yyyy')} · {items[0].clients?.name || 'Cliente'}</Link>
                 <div className="flex gap-2 items-center">
-                  <select value={['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? items[0].payment_type : ''} onChange={e => { if (e.target.value) segnaRapido(items, e.target.value as any) }} className="text-xs border rounded appearance-none w-6 h-6 bg-white cursor-pointer" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 12 12\'%3E%3Cpath fill=\'%23666\' d=\'M2 4l4 4 4-4\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'center', color: 'transparent' }} title="Scegli stato">
-                    <option value="">—</option>
-                    <option value="pagato">Pagato</option>
-                    <option value="garanzia">In garanzia</option>
-                    <option value="abbonamento">Compreso nell abbonamento</option>
-                  </select>
+                  <div className="relative">
+                    <button type="button" onClick={() => setMenuAperto(menuAperto === items[0].id ? '' : items[0].id)} className="w-6 h-6 border rounded text-slate-600 leading-none" title="Scegli stato">▾</button>
+                    {menuAperto === items[0].id ? (
+                      <div className="absolute right-0 z-10 mt-1 bg-white border rounded shadow text-sm min-w-[180px]">
+                        <button type="button" onClick={() => { segnaRapido(items, 'pagato'); setMenuAperto('') }} className="block w-full text-left px-3 py-1.5 hover:bg-slate-50">Pagato</button>
+                        <button type="button" onClick={() => { segnaRapido(items, 'garanzia'); setMenuAperto('') }} className="block w-full text-left px-3 py-1.5 hover:bg-slate-50">In garanzia</button>
+                        <button type="button" onClick={() => { segnaRapido(items, 'abbonamento'); setMenuAperto('') }} className="block w-full text-left px-3 py-1.5 hover:bg-slate-50">Compreso nell abbonamento</button>
+                      </div>
+                    ) : null}
+                  </div>
                   {['pagato','garanzia','abbonamento'].includes(items[0].payment_type) ? (
                     <span className="text-xs font-medium text-green-600">
                       {items[0].payment_type === 'pagato' ? 'Pagato' : items[0].payment_type === 'garanzia' ? 'In garanzia' : 'Compreso nell abbonamento'}
